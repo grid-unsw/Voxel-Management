@@ -8,7 +8,8 @@ public class VoxelisationManagerEditor : Editor
 {
     VoxelisationManager _voxelisationManager;
     private MeshFilter[] _meshFilters;
-    private GPUVoxelData _voxelsData;
+    private GPUVoxelData _voxelModel;
+    private MultiValueVoxelModel _voxelColorModel;
 
     private void OnEnable()
     {
@@ -19,42 +20,63 @@ public class VoxelisationManagerEditor : Editor
     {
         DrawDefaultInspector();
 
-        if (GUILayout.Button("Build Voxels"))
+        if (GUILayout.Button("Build and visualise voxels"))
         {
             if (_meshFilters == null || _meshFilters.Length == 0)
                 _meshFilters = FindObjectsOfType(typeof(MeshFilter)) as MeshFilter[];
 
-            _voxelsData = _voxelisationManager.GetVoxelData(_meshFilters);
-
-            Debug.Log("Voxels are successfully created!");
-        }
-
-        if (GUILayout.Button("Visualise voxels"))
-        {
-            if (_voxelsData == null)
+            if (_voxelisationManager.hasColor == false)
             {
-                _voxelsData = _voxelisationManager.GetVoxelData(_meshFilters);
+                if (_voxelModel == null)
+                {
+                    _voxelModel = _voxelisationManager.GetVoxelData(_meshFilters);
+
+                    Debug.Log("Voxels are successfully created!");
+                }
+
+                if (_voxelisationManager.voxelMesh)
+                {
+                    _voxelisationManager.BuildMesh(_voxelModel);
+                }
+
+                if (_voxelisationManager.vfxVisualisation)
+                {
+                    _voxelisationManager.VisualiseVfxVoxels(_voxelModel);
+                }
+            }
+            else
+            {
+                if (_voxelColorModel == null)
+                {
+                    _voxelColorModel = _voxelisationManager.GetMultiValueVoxelData(_meshFilters);
+
+                    Debug.Log("Voxels are successfully created!");
+                }
+
+                if (_voxelisationManager.voxelMesh)
+                {
+                    _voxelisationManager.BuildColorMesh(_voxelColorModel);
+                }
+
+                if (_voxelisationManager.vfxVisualisation)
+                {
+                    _voxelisationManager.VisualiseVfxColorVoxels(_voxelColorModel);
+                }
             }
 
-            if (_voxelisationManager.voxelMesh)
-            {
-                _voxelisationManager.VisualiseVoxelMesh(_voxelsData);
-            }
 
-            if (_voxelisationManager.vfxVisualisation)
-            {
-                _voxelisationManager.VisualiseVfxVoxels(_voxelsData);
-            }
+
+
         }
 
         if (GUILayout.Button("Export Voxels"))
         {
-            if (_voxelsData == null)
+            if (_voxelModel == null)
             {
                 Debug.Log("Voxels are not created!");
             }
 
-            _voxelisationManager.ExportPts(_voxelsData);
+            _voxelisationManager.ExportPts(_voxelModel);
 
             Debug.Log("Voxels successfully exported!");
         }

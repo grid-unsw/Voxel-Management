@@ -46,11 +46,13 @@ namespace VoxelSystem
         [SerializeField] private float _voxelSize = 0.25f;
         [SerializeField] private voxelisationType _type;
         [SerializeField] private bool _useUv = false;
+        [SerializeField] public bool hasColor;
 
         [Header("Visualisation - Mesh")] 
         public bool voxelMesh;
-        [SerializeField] public int _gridSplittingSize;
+        [SerializeField] private int _gridSplittingSize;
         [SerializeField] private Material _voxelMaterial;
+        [SerializeField] private int _materialsNumber = 16;
 
         [Header("Visualisation - Dots")]
         [SerializeField] private bool _dotsVisualisation;
@@ -94,6 +96,15 @@ namespace VoxelSystem
             var combinedMeshes = CombineMeshes(meshFilters);
 
             return GPUVoxelizer.Voxelize(_voxelizer, combinedMeshes, extendedBounds, _voxelSize, false);
+        }
+
+        public MultiValueVoxelModel GetMultiValueVoxelData(MeshFilter[] meshFilters)
+        {
+            var minMaxBounds = MinMaxBounds(meshFilters);
+
+            var extendedBounds = GPUVoxelizer.GetExtendedBounds(minMaxBounds.Item1, minMaxBounds.Item2, _voxelSize);
+
+            return VoxeliseModel(_voxelizer, meshFilters.ToDictionary(x => x.gameObject.name, x => x), extendedBounds.Item2, extendedBounds.Item1.min, _voxelSize);
         }
 
         private (Vector3, Vector3) MinMaxBounds(MeshFilter[] meshFilters)
@@ -143,27 +154,25 @@ namespace VoxelSystem
             return combinedMesh;
         }
 
-        public MultiValueVoxelModel VoxeliseModel(Dictionary<int, MeshFilter> meshFilters, int[] modelSizes,
-            Vector3 modelStartPoint, float voxelSize, ComputeShader voxelizer)
+        public MultiValueVoxelModel VoxeliseModel(ComputeShader voxelizer, Dictionary<string, MeshFilter> meshFilters, Index3D modelSizes,
+            Vector3 modelPivotPoint, float voxelSize)
         {
-            var wModel = modelSizes[0];
-            var hModel = modelSizes[1];
-            var dModel = modelSizes[2];
+            var wModel = modelSizes.X;
+            var hModel = modelSizes.Y;
+            var dModel = modelSizes.Z;
 
             var voxels = new List<int>[wModel * hModel * dModel];
 
             foreach (var meshFilter in meshFilters.Values)
             {
-                var objectId = int.Parse(meshFilter.gameObject.name);
-
                 var data = GPUVoxelizer.Voxelize(voxelizer, meshFilter.sharedMesh, voxelSize, false);
                 var voxelsArray = data.GetData();
 
-                var wDiff = Mathf.RoundToInt((data.PivotPoint.x - modelStartPoint.x) / voxelSize);
-                var hDiff = Mathf.RoundToInt((data.PivotPoint.y - modelStartPoint.y) / voxelSize);
-                var dDiff = Mathf.RoundToInt((data.PivotPoint.z - modelStartPoint.z) / voxelSize);
+                var wDiff = Mathf.RoundToInt((data.PivotPoint.x - modelPivotPoint.x) / voxelSize);
+                var hDiff = Mathf.RoundToInt((data.PivotPoint.y - modelPivotPoint.y) / voxelSize);
+                var dDiff = Mathf.RoundToInt((data.PivotPoint.z - modelPivotPoint.z) / voxelSize);
 
-                for (int i = 0; i <= voxelsArray.Length; i++)
+                for (int i = 0; i < voxelsArray.Length; i++)
                 {
                     var voxel = voxelsArray[i];
                     if (voxel.fill > 0)
@@ -173,14 +182,14 @@ namespace VoxelSystem
                         var voxelModelIndex = ArrayFunctions.Index3DTo1D(voxel3dIndex.X + wDiff,
                             voxel3dIndex.Y + hDiff, voxel3dIndex.Z + dDiff, wModel, hModel);
 
-                        UpdateVoxel(ref voxels[voxelModelIndex], objectId);
+                        UpdateVoxel(ref voxels[voxelModelIndex], meshFilter.gameObject.GetInstanceID());
                     }
                 }
 
                 data.Dispose();
             }
 
-            return new MultiValueVoxelModel(voxels, wModel, hModel, dModel, modelStartPoint, voxelSize,
+            return new MultiValueVoxelModel(voxels, wModel, hModel, dModel, modelPivotPoint, voxelSize,
                 meshFilters.Keys.ToArray());
         }
 
@@ -188,7 +197,7 @@ namespace VoxelSystem
         {
             if (voxel == null)
             {
-                voxel = new List<int>() {objectId};
+                voxel = new List<int>() { objectId };
             }
             else
             {
@@ -196,26 +205,50 @@ namespace VoxelSystem
             }
         }
 
-        public void VisualiseVoxelMesh(GPUVoxelData voxelsData)
+        public void BuildMesh(GPUVoxelData voxelsData)
         {
             var parentGameObject = new GameObject("VoxelMesh_" + _voxelSize + "m");
-            var meshes = VoxelMesh.Build(voxelsData, _voxelSize, _gridSplittingSize, _useUv);
+            var voxelsChunks = VoxelMesh.Build(voxelsData, _voxelSize, _gridSplittingSize, _useUv);
             var minusHalfVoxel = -_voxelSize / 2;
 
-            foreach (var mesh in meshes)
+            foreach (var voxelsChunk in voxelsChunks)
             {
-                if (mesh == null) continue;
+                if (voxelsChunk == null) continue;
 
-                var childGameObject = new GameObject("chunk_" + mesh.XMin + "_" + mesh.YMin + "_" + mesh.ZMin, typeof(MeshFilter),
+                var childGameObject = new GameObject(
+                    "chunk_" + voxelsChunk.XMin + "_" + voxelsChunk.YMin + "_" + voxelsChunk.ZMin,
+                    typeof(MeshFilter),
                     typeof(MeshRenderer));
 
-                childGameObject.GetComponent<MeshFilter>().sharedMesh = mesh.Mesh;
+                childGameObject.GetComponent<MeshFilter>().sharedMesh = voxelsChunk.Mesh;
                 childGameObject.transform.position = new Vector3(minusHalfVoxel, minusHalfVoxel, minusHalfVoxel);
                 childGameObject.GetComponent<Renderer>().material = _voxelMaterial;
                 childGameObject.transform.parent = parentGameObject.transform;
             }
-
         }
+
+        public void BuildColorMesh(MultiValueVoxelModel voxelsData)
+        {
+            var parentGameObject = new GameObject("ColorVoxelMesh_" + _voxelSize + "m");
+            var voxelsChunks = VoxelMesh.BuildWithColor(voxelsData, _voxelSize, _gridSplittingSize, _materialsNumber, _useUv );
+            var minusHalfVoxel = -_voxelSize / 2;
+
+            foreach (var voxelsChunk in voxelsChunks)
+            {
+                if (voxelsChunk == null) continue;
+
+                var childGameObject = new GameObject(
+                    "chunk_" + voxelsChunk.XMin + "_" + voxelsChunk.YMin + "_" + voxelsChunk.ZMin,
+                    typeof(MeshFilter),
+                    typeof(MeshRenderer));
+
+                childGameObject.GetComponent<MeshFilter>().sharedMesh = voxelsChunk.Mesh;
+                childGameObject.transform.position = new Vector3(minusHalfVoxel, minusHalfVoxel, minusHalfVoxel);
+                childGameObject.GetComponent<Renderer>().materials = voxelsChunk.Materials;
+                childGameObject.transform.parent = parentGameObject.transform;
+            }
+        }
+
 
         public void VisualiseVfxVoxels(GPUVoxelData voxelsData)
         {
@@ -236,6 +269,16 @@ namespace VoxelSystem
                 voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>()
                     .SetQuadParticles(voxelsData, _voxelSize, _vfxColor);
             }
+        }
+
+        public void VisualiseVfxColorVoxels(MultiValueVoxelModel voxelModel)
+        {
+            var voxelLayerPrefab = Resources.Load("Prefabs/QuadWithColorLayer") as GameObject;
+
+            var voxelsLayerGameObject = Instantiate(voxelLayerPrefab, Vector3.zero, new Quaternion());
+            voxelsLayerGameObject.name = "VFX_color_quads_" + _voxelSize;
+            voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>()
+                .SetColorQuadParticles(voxelModel, _voxelSize);
         }
 
         public void ExportPts(GPUVoxelData voxelsData)

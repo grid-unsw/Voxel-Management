@@ -36,18 +36,18 @@ namespace VoxelSystem
             get { return voxelSize; }
         }
 
-        public int[] ObjectIds
+        public string[] ObjectNames
         {
-            get { return objectIds; }
+            get { return objectNames; }
         }
 
         List<int>[] voxels;
         int width, height, depth;
         Vector3 pivotPoint;
         float voxelSize;
-        private int[] objectIds;
+        private string[] objectNames;
 
-        public MultiValueVoxelModel(List<int>[] v, int w, int h, int d, Vector3 pivot, float vSize, int[] ids)
+        public MultiValueVoxelModel(List<int>[] v, int w, int h, int d, Vector3 pivot, float vSize, string[] names)
         {
             voxels = v;
             width = w;
@@ -55,7 +55,7 @@ namespace VoxelSystem
             depth = d;
             pivotPoint = pivot;
             voxelSize = vSize;
-            objectIds = ids;
+            objectNames = names;
         }
     }
 }

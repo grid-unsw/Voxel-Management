@@ -113,7 +113,7 @@ namespace VoxelSystem {
             return new GPUVoxelData(voxelBuffer, w, h, d, start);
         }
 
-        public static GPUVoxelData Voxelize(ComputeShader voxelizer, Mesh mesh, (Bounds,int[]) extendedBounds, float unit, bool volume = true)
+        public static GPUVoxelData Voxelize(ComputeShader voxelizer, Mesh mesh, (Bounds,Index3D) extendedBounds, float unit, bool volume = true)
         {
             var vertices = mesh.vertices;
             var vertBuffer = new ComputeBuffer(vertices.Length, Marshal.SizeOf(typeof(Vector3)));
@@ -139,9 +139,9 @@ namespace VoxelSystem {
             var end = extendedBounds.Item1.max;
             var size = extendedBounds.Item1.size;
 
-            var w = extendedBounds.Item2[0];
-            var h = extendedBounds.Item2[1];
-            var d = extendedBounds.Item2[2];
+            var w = extendedBounds.Item2.X;
+            var h = extendedBounds.Item2.Y;
+            var d = extendedBounds.Item2.Z;
 
             var voxelBuffer = new ComputeBuffer(w * h * d, Marshal.SizeOf(typeof(Voxel_t)));
             var voxels = new Voxel_t[voxelBuffer.count];
@@ -216,7 +216,7 @@ namespace VoxelSystem {
             return new Vector3(modX, modY, modZ);
         }
 
-        public static (Bounds,int[]) GetExtendedBounds(Vector3 minBounds, Vector3 maxBounds, float voxelSize)
+        public static (Bounds, Index3D) GetExtendedBounds(Vector3 minBounds, Vector3 maxBounds, float voxelSize)
         {
             var voxelSizeX2 = voxelSize * 2;
             var start = minBounds - ExtendBound(minBounds, voxelSize);
@@ -229,7 +229,7 @@ namespace VoxelSystem {
 
             var extendedBounds = new Bounds((start + end) / 2, size);
 
-            return (extendedBounds,new int[] {w, h, d});
+            return (extendedBounds,new Index3D(w, h, d));
         }
 
         public static RenderTexture BuildTexture3D(ComputeShader voxelizer, GPUVoxelData data, RenderTextureFormat format, FilterMode filterMode)

@@ -11,13 +11,13 @@ C:\Program Files\Unity\Hub\Editor\2021.3.0f1\Editor\Unity.exe
 -name
 AssetImportWorker0
 -projectPath
-C:/Users/z3525545/OneDrive - UNSW/Documents/GitHub/Voxels Visualization & Management
+C:/Users/z3525545/Documents/GitHub/Voxel-Management/Voxels Visualization & Management
 -logFile
 Logs/AssetImportWorker0.log
 -srvPort
-53240
-Successfully changed project path to: C:/Users/z3525545/OneDrive - UNSW/Documents/GitHub/Voxels Visualization & Management
-C:/Users/z3525545/OneDrive - UNSW/Documents/GitHub/Voxels Visualization & Management
+64522
+Successfully changed project path to: C:/Users/z3525545/Documents/GitHub/Voxel-Management/Voxels Visualization & Management
+C:/Users/z3525545/Documents/GitHub/Voxel-Management/Voxels Visualization & Management
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
     "memorysetup-bucket-allocator-granularity=16"
     "memorysetup-bucket-allocator-bucket-count=8"
@@ -47,58 +47,9 @@ C:/Users/z3525545/OneDrive - UNSW/Documents/GitHub/Voxels Visualization & Manage
     "memorysetup-temp-allocator-size-cloud-worker=32768"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Refreshing native plugins compatible for Editor in 1121.35 ms, found 4 plugins.
+Refreshing native plugins compatible for Editor in 606.92 ms, found 4 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 2021.3.0f1 (6eacc8284459)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/2021.3.0f1/Editor/Data/Resources/UnitySubsystems
-[Subsystems] Discovering subsystems at path C:/Users/z3525545/OneDrive - UNSW/Documents/GitHub/Voxels Visualization & Management/Assets
+[Subsystems] Discovering subsystems at path C:/Users/z3525545/Documents/GitHub/Voxel-Management/Voxels Visualization & Management/Assets
 GfxDevice: creating device client; threaded=0; jobified=0
-Direct3D:
-    Version:  Direct3D 11.0 [level 11.1]
-    Renderer: Intel(R) HD Graphics 620 (ID=0x5916)
-    Vendor:   Intel
-    VRAM:     7889 MB
-    Driver:   27.20.100.8681
-Initialize mono
-Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/2021.3.0f1/Editor/Data/Managed'
-Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/2021.3.0f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
-Mono config path = 'C:/Program Files/Unity/Hub/Editor/2021.3.0f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56732
-Begin MonoManager ReloadAssembly
-Registering precompiled unity dll's ...
-Register platform support module: C:/Program Files/Unity/Hub/Editor/2021.3.0f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
-Registered in 0.063330 seconds.
-Native extension for WindowsStandalone target not found
-Refreshing native plugins compatible for Editor in 1447.05 ms, found 4 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
-Mono: successfully reloaded assembly
-- Completed reload, in  5.283 seconds
-Domain Reload Profiling:
-	ReloadAssembly (5284ms)
-		BeginReloadAssembly (621ms)
-			ExecutionOrderSort (0ms)
-			DisableScriptedObjects (0ms)
-			BackupInstance (0ms)
-			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (4ms)
-		EndReloadAssembly (3665ms)
-			LoadAssemblies (605ms)
-			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (780ms)
-			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (345ms)
-			SetupLoadedEditorAssemblies (2124ms)
-				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (112ms)
-				SetLoadedEditorAssemblies (1ms)
-				RefreshPlugins (1447ms)
-				BeforeProcessingInitializeOnLoad (6ms)
-				ProcessInitializeOnLoadAttributes (451ms)
-				ProcessInitializeOnLoadMethodAttributes (106ms)
-				AfterProcessingInitializeOnLoad (0ms)
-				EditorAssembliesLoaded (0ms)
-			ExecutionOrderSort2 (0ms)
-			AwakeInstancesAfterBackupRestoration (0ms)
-Platform modules already initialized, skipping
-Registering precompiled user dll's ...
-Registered in 0.030826 seconds.

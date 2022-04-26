@@ -9,11 +9,13 @@ public class VoxelsRendererDynamic : MonoBehaviour
 {
     private Vector4 _voxelColor;
     private Texture2D _texPosition;
+    private Texture2D _texColor;
     private VisualEffect vfx;
     private uint _resolution = 2048;
     private bool _toUpdate;
     private uint _particleCount;
     private float _voxelSize;
+    private bool hasColor;
 
     private void Start()
     {
@@ -216,7 +218,38 @@ public class VoxelsRendererDynamic : MonoBehaviour
         _texPosition.Apply();
         _toUpdate = true;
     }
-    
+
+    public void SetParticlesWithColor(List<Color> positions, List<Color> colors)
+    {
+        _texPosition = new Texture2D(_particleCount > _resolution ? (int)_resolution : (int)_particleCount, Mathf.Clamp((int)_particleCount / (int)_resolution, 1, (int)_resolution), TextureFormat.RGBAFloat, false);
+        _texColor = new Texture2D(_particleCount > _resolution ? (int)_resolution : (int)_particleCount, Mathf.Clamp((int)_particleCount / (int)_resolution, 1, (int)_resolution), TextureFormat.RGBAFloat, false);
+
+        var y = 0;
+        var x = 0;
+        var i = 0;
+        foreach (var position in positions)
+        {
+            _texPosition.SetPixel(x, y, position);
+            _texColor.SetPixel(x,y,colors[i]);
+
+            if (x < _resolution)
+            {
+                x++;
+            }
+            else
+            {
+                x = 0;
+                y++;
+            }
+
+            i++;
+        }
+
+        _texPosition.Apply();
+        _texColor.Apply();
+        _toUpdate = true;
+    }
+
     public void SetVoxelParticles(GPUVoxelData voxelsData, float voxelSize, Color voxelsColor)
     {
         var voxels = voxelsData.GetData();
@@ -435,6 +468,210 @@ public class VoxelsRendererDynamic : MonoBehaviour
         SetParticles(positions);
     }
 
+    public void SetColorQuadParticles(MultiValueVoxelModel voxelModel, float voxelSize)
+    {
+        hasColor = true;
+        var halfVoxelSize = voxelSize / 2;
+        var pivotVoxelPoint = voxelModel.PivotPoint - new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize);
+        var positions = new List<Color>();
+        var colors = new List<Color>();
+        var uniqueColors = VisualizationFunctions.GetUniqueColors(
+            voxelModel.Voxels.Where(x => x != null).Select(x => x[0]).Distinct());
+
+        var quadsCount = 0;
+        var m = 0;
+        for (int k = 0; k < voxelModel.Depth; k++)
+            for (int j = 0; j < voxelModel.Height; j++)
+                for (int i = 0; i < voxelModel.Width; i++)
+                {
+                    var voxel = voxelModel.Voxels[m];
+
+                    if (voxel != null)
+                    {
+                        var iLeft = i - 1;
+                        var iRight = i + 1;
+                        var jDown = j - 1;
+                        var jUp = j + 1;
+                        var kBack = k - 1;
+                        var kForward = k + 1;
+
+                        if (iLeft != -1)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(iLeft, j, k, voxelModel.Width, voxelModel.Height);
+                            var voxelLeft = voxelModel.Voxels[voxelIndex];
+
+                            if (voxelLeft == null)
+                            {
+                                var position = new Color(pivotVoxelPoint.x + i * voxelSize,
+                                    voxelModel.PivotPoint.y + j * voxelSize,
+                                    voxelModel.PivotPoint.z + k * voxelSize, 0);
+                                positions.Add(position);
+                                var color = uniqueColors[voxel[0]];
+                                colors.Add(color);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(pivotVoxelPoint.x + i * voxelSize,
+                                voxelModel.PivotPoint.y + j * voxelSize,
+                                voxelModel.PivotPoint.z + k * voxelSize, 0);
+                            positions.Add(position);
+                            var color = uniqueColors[voxel[0]];
+                            colors.Add(color);
+                            quadsCount++;
+                        }
+
+                        if (iRight != voxelModel.Width)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(iRight, j, k, voxelModel.Width, voxelModel.Height);
+                            var voxelRight = voxelModel.Voxels[voxelIndex];
+
+                            if (voxelRight == null)
+                            {
+                                var position = new Color(pivotVoxelPoint.x + (i + 1) * voxelSize,
+                                    voxelModel.PivotPoint.y + j * voxelSize,
+                                    voxelModel.PivotPoint.z + k * voxelSize, 1);
+                                positions.Add(position);
+                                var color = uniqueColors[voxel[0]];
+                                colors.Add(color);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(pivotVoxelPoint.x + (i + 1) * voxelSize,
+                                voxelModel.PivotPoint.y + j * voxelSize,
+                                voxelModel.PivotPoint.z + k * voxelSize, 1);
+                            positions.Add(position);
+                            var color = uniqueColors[voxel[0]];
+                            colors.Add(color);
+                            quadsCount++;
+                        }
+
+                        if (jDown != -1)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(i, jDown, k, voxelModel.Width, voxelModel.Height);
+                            var voxelDown = voxelModel.Voxels[voxelIndex];
+
+                            if (voxelDown == null)
+                            {
+                                var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                    pivotVoxelPoint.y + j * voxelSize,
+                                    voxelModel.PivotPoint.z + k * voxelSize, 2);
+                                positions.Add(position);
+                                var color = uniqueColors[voxel[0]];
+                                colors.Add(color);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                pivotVoxelPoint.y + j * voxelSize,
+                                voxelModel.PivotPoint.z + k * voxelSize, 2);
+                            positions.Add(position);
+                            var color = uniqueColors[voxel[0]];
+                            colors.Add(color);
+                            quadsCount++;
+                        }
+
+                        if (jUp != voxelModel.Height)
+                        {
+                            var voxelIndex = ArrayFunctions.Index3DTo1D(i, jUp, k, voxelModel.Width, voxelModel.Height);
+                            var voxelUp = voxelModel.Voxels[voxelIndex];
+
+                            if (voxelUp == null)
+                            {
+                                var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                    pivotVoxelPoint.y + (j + 1) * voxelSize,
+                                    voxelModel.PivotPoint.z + k * voxelSize, 3);
+                                positions.Add(position);
+                                var color = uniqueColors[voxel[0]];
+                                colors.Add(color);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(voxelModel.PivotPoint.x + i * _voxelSize,
+                                pivotVoxelPoint.y + (j + 1) * voxelSize,
+                                voxelModel.PivotPoint.z + k * voxelSize, 3);
+                            positions.Add(position);
+                            var color = uniqueColors[voxel[0]];
+                            colors.Add(color);
+                            quadsCount++;
+                        }
+
+                        if (kBack != -1)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(i, j, kBack, voxelModel.Width, voxelModel.Height);
+                            var voxelBack = voxelModel.Voxels[voxelIndex];
+
+                            if (voxelBack == null)
+                            {
+                                var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                    voxelModel.PivotPoint.y + j * voxelSize,
+                                    pivotVoxelPoint.z + k * voxelSize, 4);
+                                positions.Add(position);
+                                var color = uniqueColors[voxel[0]];
+                                colors.Add(color);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                voxelModel.PivotPoint.y + j * voxelSize,
+                                pivotVoxelPoint.z + k * voxelSize, 4);
+                            positions.Add(position);
+                            var color = uniqueColors[voxel[0]];
+                            colors.Add(color);
+                            quadsCount++;
+                        }
+
+                        if (kForward != voxelModel.Depth)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(i, j, kForward, voxelModel.Width, voxelModel.Height);
+                            var voxelForward = voxelModel.Voxels[voxelIndex];
+
+                            if (voxelForward == null)
+                            {
+                                var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                    voxelModel.PivotPoint.y + j * voxelSize,
+                                    pivotVoxelPoint.z + (k + 1) * voxelSize, 5);
+                                positions.Add(position);
+                                var color = uniqueColors[voxel[0]];
+                                colors.Add(color);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                voxelModel.PivotPoint.y + j * voxelSize,
+                                pivotVoxelPoint.z + (k + 1) * voxelSize, 5);
+                            positions.Add(position);
+                            var color = uniqueColors[voxel[0]];
+                            colors.Add(color);
+                            quadsCount++;
+                        }
+                    }
+
+                    m++;
+                }
+
+        _voxelSize = voxelSize;
+        _particleCount = (uint)quadsCount;
+
+        SetParticlesWithColor(positions, colors);
+    }
+
     private void Update()
     {
         if (_toUpdate)
@@ -444,9 +681,16 @@ public class VoxelsRendererDynamic : MonoBehaviour
             vfx.Reinit();
             vfx.SetUInt(Shader.PropertyToID("VoxelsCount"), _particleCount);
             vfx.SetFloat(Shader.PropertyToID("VoxelSize"), _voxelSize);
-            vfx.SetVector4(Shader.PropertyToID("VoxelColor"), _voxelColor);
             vfx.SetTexture(Shader.PropertyToID("TexPosScale"), _texPosition);
             vfx.SetUInt(Shader.PropertyToID("Resolution"), _resolution);
+            if (hasColor)
+            {
+                vfx.SetTexture(Shader.PropertyToID("TexColor"), _texColor);
+            }
+            else
+            {
+                vfx.SetVector4(Shader.PropertyToID("VoxelColor"), _voxelColor);
+            }
         }
     }
 }
