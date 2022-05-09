@@ -186,13 +186,11 @@ namespace VoxelSystem
 			return mesh;
 		}
 
-        public static IEnumerable<VoxelChunk> Build(GPUVoxelData voxelsData, float unit, int gridSplittigSize, bool useUV = false)
+        public static IEnumerable<VoxelChunk> Build(Voxel_t[] voxels, int width, int height, int depth, float unit, int gridSplittigSize, bool useUV = false)
         {
-            var chunksWidthCount = Mathf.CeilToInt((float)voxelsData.Width / gridSplittigSize);
-            var chunksHeightCount = Mathf.CeilToInt((float)voxelsData.Height / gridSplittigSize);
-            var chunksDepthCount = Mathf.CeilToInt((float)voxelsData.Depth / gridSplittigSize);
-
-            var voxels = voxelsData.GetData();
+            var chunksWidthCount = Mathf.CeilToInt((float)width / gridSplittigSize);
+            var chunksHeightCount = Mathf.CeilToInt((float)height / gridSplittigSize);
+            var chunksDepthCount = Mathf.CeilToInt((float)depth / gridSplittigSize);
 
             for (var d = 0; d < chunksDepthCount; d++)
                 for (var h = 0; h < chunksHeightCount; h++)
@@ -223,12 +221,12 @@ namespace VoxelSystem
                         var minHeightIndex = h * gridSplittigSize;
                         var minWidthIndex = w * gridSplittigSize;
 
-                        for (int k = minDepthIndex; k < minDepthIndex + gridSplittigSize && k < voxelsData.Depth; k++)
-                            for (int j = minHeightIndex; j < minHeightIndex + gridSplittigSize && j < voxelsData.Height; j++)
-                                for (int i = minWidthIndex; i < minWidthIndex + gridSplittigSize && i < voxelsData.Width; i++)
+                        for (int k = minDepthIndex; k < minDepthIndex + gridSplittigSize && k < depth; k++)
+                            for (int j = minHeightIndex; j < minHeightIndex + gridSplittigSize && j < height; j++)
+                                for (int i = minWidthIndex; i < minWidthIndex + gridSplittigSize && i < width; i++)
                                 {
                                     var vIndex =
-                                        ArrayFunctions.Index3DTo1D(i, j, k, voxelsData.Width, voxelsData.Height);
+                                        ArrayFunctions.Index3DTo1D(i, j, k, width, height);
                                     var v = voxels[vIndex];
                                     if (v.fill > 0)
                                     {
@@ -243,7 +241,7 @@ namespace VoxelSystem
                                         if (iLeft != -1)
                                         {
                                             var voxelIndex =
-                                                ArrayFunctions.Index3DTo1D(iLeft, j, k, voxelsData.Width, voxelsData.Height);
+                                                ArrayFunctions.Index3DTo1D(iLeft, j, k, width, height);
                                             var voxelLeft = voxels[voxelIndex];
 
                                             if (voxelLeft.fill == 0)
@@ -261,10 +259,10 @@ namespace VoxelSystem
                                         }
 
                                         // right
-                                        if (iRight != voxelsData.Width)
+                                        if (iRight != width)
                                         {
-                                            var voxelIndex = ArrayFunctions.Index3DTo1D(iRight, j, k, voxelsData.Width,
-                                                voxelsData.Height);
+                                            var voxelIndex = ArrayFunctions.Index3DTo1D(iRight, j, k, width,
+                                                height);
                                             var voxel = voxels[voxelIndex];
 
                                             if (voxel.fill == 0)
@@ -285,7 +283,7 @@ namespace VoxelSystem
                                         if (jDown != -1)
                                         {
                                             var voxelIndex =
-                                                ArrayFunctions.Index3DTo1D(i, jDown, k, voxelsData.Width, voxelsData.Height);
+                                                ArrayFunctions.Index3DTo1D(i, jDown, k, width, height);
                                             var voxel = voxels[voxelIndex];
 
                                             if (voxel.fill == 0)
@@ -303,10 +301,10 @@ namespace VoxelSystem
                                         }
 
                                         // up
-                                        if (jUp != voxelsData.Height)
+                                        if (jUp != height)
                                         {
                                             var voxelIndex =
-                                                ArrayFunctions.Index3DTo1D(i, jUp, k, voxelsData.Width, voxelsData.Height);
+                                                ArrayFunctions.Index3DTo1D(i, jUp, k, width, height);
                                             var voxel = voxels[voxelIndex];
 
                                             if (voxel.fill == 0)
@@ -327,7 +325,7 @@ namespace VoxelSystem
                                         if (kBack != -1)
                                         {
                                             var voxelIndex =
-                                                ArrayFunctions.Index3DTo1D(i, j, kBack, voxelsData.Width, voxelsData.Height);
+                                                ArrayFunctions.Index3DTo1D(i, j, kBack, width, height);
                                             var voxel = voxels[voxelIndex];
 
                                             if (voxel.fill == 0)
@@ -345,10 +343,10 @@ namespace VoxelSystem
                                         }
 
                                         // forward
-                                        if (kForward != voxelsData.Depth)
+                                        if (kForward != depth)
                                         {
-                                            var voxelIndex = ArrayFunctions.Index3DTo1D(i, j, kForward, voxelsData.Width,
-                                                voxelsData.Height);
+                                            var voxelIndex = ArrayFunctions.Index3DTo1D(i, j, kForward, width,
+                                                height);
                                             var voxel = voxels[voxelIndex];
 
                                             if (voxel.fill == 0)

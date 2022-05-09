@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -52,8 +53,8 @@ namespace VoxelSystem {
             var dunit = unit * 2;
 
             // Extend (min & max) to voxelize boundary surface correctly.
-            var start = bounds.min - ExtendBound(bounds.min, unit);
-            var end = new Vector3(dunit, dunit, dunit) + bounds.max - ExtendBound(bounds.max, unit);
+            var start = bounds.min - Functions.ExtendBound(bounds.min, unit);
+            var end = new Vector3(dunit, dunit, dunit) + bounds.max - Functions.ExtendBound(bounds.max, unit);
             var size = end - start;
 
             int w, h, d;
@@ -193,43 +194,6 @@ namespace VoxelSystem {
             triBuffer.Release();
 
             return new GPUVoxelData(voxelBuffer, w, h, d, start);
-        }
-
-        public static Vector3 ExtendBound(Vector3 point, float voxelSize)
-        {
-            float modX = point.x % voxelSize;
-            float modY = point.y % voxelSize;
-            float modZ = point.z % voxelSize;
-            if (point.x < 0)
-            {
-                modX += voxelSize;
-            }
-            if (point.y < 0)
-            {
-                modY += voxelSize;
-            }
-            if (point.z < 0)
-            {
-                modZ += voxelSize;
-            }
-
-            return new Vector3(modX, modY, modZ);
-        }
-
-        public static (Bounds, Index3D) GetExtendedBounds(Vector3 minBounds, Vector3 maxBounds, float voxelSize)
-        {
-            var voxelSizeX2 = voxelSize * 2;
-            var start = minBounds - ExtendBound(minBounds, voxelSize);
-            var end = new Vector3(voxelSizeX2, voxelSizeX2, voxelSizeX2) + maxBounds - ExtendBound(maxBounds, voxelSize);
-            var size = end - start;
-
-            var w = Mathf.RoundToInt(size.x / voxelSize);
-            var h = Mathf.RoundToInt(size.y / voxelSize);
-            var d = Mathf.RoundToInt(size.z / voxelSize);
-
-            var extendedBounds = new Bounds((start + end) / 2, size);
-
-            return (extendedBounds,new Index3D(w, h, d));
         }
 
         public static RenderTexture BuildTexture3D(ComputeShader voxelizer, GPUVoxelData data, RenderTextureFormat format, FilterMode filterMode)

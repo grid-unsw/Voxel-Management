@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using VoxelSystem.PointCloud;
@@ -34,11 +35,10 @@ namespace VoxelSystem.IO
             }
         }
 
-        public static void WritePts(Point[] points, Color color, string path, string delimiter)
+        public static void WritePts(List<Point> points, Color color, string path, string delimiter, bool append)
         {
-            using (StreamWriter writer = new StreamWriter(path))
+            using (var writer = new StreamWriter(path, append))
             {
-                writer.WriteLine(points.Length);
                 foreach (var point in points)
                 {
                     var text =

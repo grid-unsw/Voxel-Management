@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -66,8 +67,9 @@ namespace VoxelSystem
         [SerializeField] private Color _vfxColor;
         [SerializeField] private voxelVisualisationType _visType;
 
-        [Header("Export Voxels")] [SerializeField]
-        private pointCloudType _fileType;
+        [Header("Export Voxels")] 
+        public bool exportVoxels;
+        [SerializeField] private pointCloudType _fileType;
         [SerializeField] private string _filePath;
         [SerializeField] private delimiter _delimiter;
 
@@ -76,6 +78,7 @@ namespace VoxelSystem
         void Start()
         {
             //EditorPrefs.SetBool("BurstCompilation", false);
+            /*
             if (_dotsVisualisation)
             {
                 var meshFilters = FindObjectsOfType(typeof(MeshFilter)) as MeshFilter[];
@@ -84,42 +87,36 @@ namespace VoxelSystem
                 CreateQuads(voxelsData);
                 transform.gameObject.SetActive(false);
             }
+            */
         }
 
-        public GPUVoxelData GetVoxelData(MeshFilter[] meshFilters)
+        public IEnumerable<GPUVoxelData> GetVoxelData(MeshFilter[] meshFilters)
         {
-            var minMaxBounds = MinMaxBounds(meshFilters);
+            var voxelModelChunks = Functions.GetMeshFiltersChunks(meshFilters, _voxelSize);
 
-            var extendedBounds = GPUVoxelizer.GetExtendedBounds(minMaxBounds.Item1, minMaxBounds.Item2, _voxelSize);
+            foreach (var voxelModelChunk in voxelModelChunks)
+            {
+                if (voxelModelChunk.MeshFilters.Any())
+                {
+                    var combinedMeshes = CombineMeshes(voxelModelChunk.MeshFilters.ToArray());
 
-            var combinedMeshes = CombineMeshes(meshFilters);
+                    yield return GPUVoxelizer.Voxelize(_voxelizer, combinedMeshes, voxelModelChunk.Bounds, _voxelSize,
+                        false);
+                }
 
-            return GPUVoxelizer.Voxelize(_voxelizer, combinedMeshes, extendedBounds, _voxelSize, false);
+                yield return null;
+            }
         }
 
         public MultiValueVoxelModel GetMultiValueVoxelData(MeshFilter[] meshFilters)
         {
-            var minMaxBounds = MinMaxBounds(meshFilters);
+            var minMaxBounds = Functions.MinMaxBounds(meshFilters);
 
-            var extendedBounds = GPUVoxelizer.GetExtendedBounds(minMaxBounds.Item1, minMaxBounds.Item2, _voxelSize);
+            var extendedBounds = Functions.GetExtendedBounds(minMaxBounds.Item1, minMaxBounds.Item2, _voxelSize);
 
-            return VoxeliseModel(_voxelizer, meshFilters.ToDictionary(x => x.gameObject.name, x => x), extendedBounds.Item2, extendedBounds.Item1.min, _voxelSize);
+            return VoxeliseModel(_voxelizer, meshFilters.ToList(), extendedBounds.Item2, extendedBounds.Item1.min, _voxelSize);
         }
 
-        private (Vector3, Vector3) MinMaxBounds(MeshFilter[] meshFilters)
-        {
-            var min = Vector3.positiveInfinity;
-            var max = Vector3.negativeInfinity;
-
-            foreach (var meshFilter in meshFilters)
-            {
-                // update min and max
-                min = Vector3.Min(min, meshFilter.sharedMesh.bounds.min);
-                max = Vector3.Max(max, meshFilter.sharedMesh.bounds.max);
-            }
-
-            return (min, max);
-        }
 
         public Mesh CombineMeshes(MeshFilter[] meshFilters)
         {
@@ -153,7 +150,7 @@ namespace VoxelSystem
             return combinedMesh;
         }
 
-        public MultiValueVoxelModel VoxeliseModel(ComputeShader voxelizer, Dictionary<string, MeshFilter> meshFilters, Index3D modelSizes,
+        public MultiValueVoxelModel VoxeliseModel(ComputeShader voxelizer, List<MeshFilter> meshFilters, Index3D modelSizes,
             Vector3 modelPivotPoint, float voxelSize)
         {
             var wModel = modelSizes.X;
@@ -165,7 +162,7 @@ namespace VoxelSystem
             var uniqueColors = VisualizationFunctions.GetUniqueColors(_maxColors);
             var colorNum = 0;
 
-            foreach (var meshFilter in meshFilters.Values)
+            foreach (var meshFilter in meshFilters)
             {
                 var data = GPUVoxelizer.Voxelize(voxelizer, meshFilter.sharedMesh, voxelSize, false);
                 var voxelsArray = data.GetData();
@@ -203,8 +200,7 @@ namespace VoxelSystem
                 data.Dispose();
             }
 
-            return new MultiValueVoxelModel(voxels, wModel, hModel, dModel, modelPivotPoint, voxelSize,
-                meshFilters.Keys.ToArray());
+            return new MultiValueVoxelModel(voxels, wModel, hModel, dModel, modelPivotPoint, voxelSize);
         }
 
         private void UpdateVoxel(ref List<VoxelObject> voxel, VoxelObject objectId)
@@ -219,10 +215,10 @@ namespace VoxelSystem
             }
         }
 
-        public void BuildMesh(GPUVoxelData voxelsData)
+        public void BuildMesh(Voxel_t[] voxels, int width, int height, int depth)
         {
             var parentGameObject = new GameObject("VoxelMesh_" + _voxelSize + "m");
-            var voxelsChunks = VoxelMesh.Build(voxelsData, _voxelSize, _gridSplittingSize, _useUv);
+            var voxelsChunks = VoxelMesh.Build(voxels, width, height, depth, _voxelSize, _gridSplittingSize, _useUv);
             var minusHalfVoxel = -_voxelSize / 2;
 
             foreach (var voxelsChunk in voxelsChunks)
@@ -264,7 +260,7 @@ namespace VoxelSystem
         }
 
 
-        public void VisualiseVfxVoxels(GPUVoxelData voxelsData)
+        public void VisualiseVfxVoxels(Voxel_t[] voxels, int width, int height, int depth, Vector3 pivotPoint)
         {
             if (_visType == voxelVisualisationType.cube)
             {
@@ -272,7 +268,7 @@ namespace VoxelSystem
 
                 var voxelsLayerGameObject = Instantiate(voxelLayerPrefab, Vector3.zero, new Quaternion());
                 voxelsLayerGameObject.name = "VFX_cubes_" + _voxelSize;
-                voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>().SetVoxelParticles(voxelsData, _voxelSize, _vfxColor);
+                voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>().SetVoxelParticles(voxels, width, height, pivotPoint, _voxelSize, _vfxColor);
             }
             else
             {
@@ -281,7 +277,7 @@ namespace VoxelSystem
                 var voxelsLayerGameObject = Instantiate(voxelLayerPrefab, Vector3.zero, new Quaternion());
                 voxelsLayerGameObject.name = "VFX_quads_" + _voxelSize;
                 voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>()
-                    .SetQuadParticles(voxelsData, _voxelSize, _vfxColor);
+                    .SetQuadParticles(voxels, width, height, depth, pivotPoint, _voxelSize, _vfxColor);
             }
         }
 
@@ -295,29 +291,27 @@ namespace VoxelSystem
                 .SetColorQuadParticles(voxelModel, _voxelSize);
         }
 
-        public void ExportPts(GPUVoxelData voxelsData)
+        public void ExportPts(Voxel_t[] voxels, int width, int height, Vector3 pivotPoint)
         {
-            var voxelsArray = voxelsData.GetData();
 
             var halfVoxelSize = _voxelSize / 2;
-            var pivotVoxelCentroid =
-                voxelsData.PivotPoint + new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize);
+            var pivotVoxelCentroid = pivotPoint + new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize);
 
             var points = new List<Point>();
 
             var i = 0;
-            foreach (var voxel in voxelsArray)
+            foreach (var voxel in voxels)
             {
                 if (voxel.fill > 0)
                 {
-                    var voxelIndex = ArrayFunctions.Index1DTo3D(i, voxelsData.Width, voxelsData.Height);
+                    var voxelIndex = ArrayFunctions.Index1DTo3D(i, width, height);
                     var point = pivotVoxelCentroid + new Vector3(voxelIndex.X * _voxelSize,
                         voxelIndex.Y * _voxelSize, voxelIndex.Z * _voxelSize);
                     points.Add(new Point(point));
                 }
                 i++;
             }
-            Output.WritePts(points.ToArray(), Color.green, _filePath, _delimiter.GetDescription());
+            Output.WritePts(points, Color.green, _filePath, _delimiter.GetDescription(), true);
             
         }
 
