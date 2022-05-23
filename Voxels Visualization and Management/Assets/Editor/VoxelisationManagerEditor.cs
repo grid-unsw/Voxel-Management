@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 using VoxelSystem;
+using Debug = UnityEngine.Debug;
 
 [CustomEditor(typeof(VoxelisationManager))]
 public class VoxelisationManagerEditor : Editor
@@ -50,7 +51,7 @@ public class VoxelisationManagerEditor : Editor
             else
             {
                 var voxelModels = _voxelisationManager.GetVoxelData(_meshFilters);
-                
+
                 foreach (var voxelData in voxelModels)
                 {
                     if (voxelData == null) continue;

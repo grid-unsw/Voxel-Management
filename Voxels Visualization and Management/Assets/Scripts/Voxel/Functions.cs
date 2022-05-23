@@ -51,7 +51,7 @@ namespace VoxelSystem
 
             var voxelModelSize = extendedBounds.Item2.X * extendedBounds.Item2.Y * extendedBounds.Item2.Z;
 
-            if (voxelModelSize > 12000000)
+            if (voxelModelSize > Constants.MaxBlockSize)
             {
                 var chunkMaxSize = (int)Mathf.Pow(2, 9);
                 var xMax = Mathf.CeilToInt((float)extendedBounds.Item2.X / chunkMaxSize);

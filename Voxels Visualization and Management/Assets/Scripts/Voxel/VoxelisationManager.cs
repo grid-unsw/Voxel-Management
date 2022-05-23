@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -9,6 +10,7 @@ using UnityEditor;
 using UnityEngine;
 using VoxelSystem.PointCloud;
 using VoxelSystem.IO;
+using Debug = UnityEngine.Debug;
 using Material = UnityEngine.Material;
 
 namespace VoxelSystem
@@ -217,6 +219,8 @@ namespace VoxelSystem
 
         public void BuildMesh(Voxel_t[] voxels, int width, int height, int depth)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             var parentGameObject = new GameObject("VoxelMesh_" + _voxelSize + "m");
             var voxelsChunks = VoxelMesh.Build(voxels, width, height, depth, _voxelSize, _gridSplittingSize, _useUv);
             var minusHalfVoxel = -_voxelSize / 2;
@@ -235,10 +239,14 @@ namespace VoxelSystem
                 childGameObject.GetComponent<Renderer>().material = _voxelMaterial;
                 childGameObject.transform.parent = parentGameObject.transform;
             }
+            stopwatch.Stop();
+            TimeSpan stopwatchElapsed = stopwatch.Elapsed;
+            Debug.Log(Convert.ToInt32(stopwatchElapsed.TotalMilliseconds));
         }
 
         public void BuildColorMesh(MultiValueVoxelModel voxelsData)
         {
+
             var parentGameObject = new GameObject("ColorVoxelMesh_" + _voxelSize + "m");
             var voxelsChunks = VoxelMesh.BuildWithColor(voxelsData, _voxelSize, _gridSplittingSize, _maxColors, _useUv );
             var minusHalfVoxel = -_voxelSize / 2;
@@ -257,6 +265,7 @@ namespace VoxelSystem
                 childGameObject.GetComponent<Renderer>().materials = voxelsChunk.Materials;
                 childGameObject.transform.parent = parentGameObject.transform;
             }
+
         }
 
 
@@ -264,25 +273,30 @@ namespace VoxelSystem
         {
             if (_visType == voxelVisualisationType.cube)
             {
+
                 var voxelLayerPrefab = Resources.Load("Prefabs/VoxelLayer") as GameObject;
 
                 var voxelsLayerGameObject = Instantiate(voxelLayerPrefab, Vector3.zero, new Quaternion());
                 voxelsLayerGameObject.name = "VFX_cubes_" + _voxelSize;
                 voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>().SetVoxelParticles(voxels, width, height, pivotPoint, _voxelSize, _vfxColor);
+
             }
             else
             {
+
                 var voxelLayerPrefab = Resources.Load("Prefabs/QuadLayer") as GameObject;
 
                 var voxelsLayerGameObject = Instantiate(voxelLayerPrefab, Vector3.zero, new Quaternion());
                 voxelsLayerGameObject.name = "VFX_quads_" + _voxelSize;
                 voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>()
                     .SetQuadParticles(voxels, width, height, depth, pivotPoint, _voxelSize, _vfxColor);
+
             }
         }
 
         public void VisualiseVfxColorVoxels(MultiValueVoxelModel voxelModel)
         {
+
             var voxelLayerPrefab = Resources.Load("Prefabs/QuadWithColorLayer") as GameObject;
 
             var voxelsLayerGameObject = Instantiate(voxelLayerPrefab, Vector3.zero, new Quaternion());
