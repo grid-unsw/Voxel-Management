@@ -1,48 +1,38 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace VoxelSystem {
 
 	public class GPUVoxelData : System.IDisposable {
 
-		public ComputeBuffer Buffer { get { return buffer; } }
-        public int Width { get { return width; } }
-		public int Height { get { return height; } }
-		public int Depth { get { return depth; } }
-		public Vector3 PivotPoint { get { return pivotPoint; } }
+        public ComputeBuffer Buffer { get; }
+        public int Width { get; }
+		public int Height { get; }
+		public int Depth { get; }
+		public Vector3 PivotPoint { get; }
 
-        int width, height, depth;
-		Vector3 pivotPoint;
+        private Voxel_t[] _voxels;
 
-		ComputeBuffer buffer;
-        Voxel_t[] voxels;
-
-		public GPUVoxelData(ComputeBuffer buf, int w, int h, int d, Vector3 p) {
-			buffer = buf;
-			width = w;
-			height = h;
-			depth = d;
-            pivotPoint = p;
+		public GPUVoxelData(ComputeBuffer buffer, int width, int height, int depth, Vector3 pivotPoint) {
+			Buffer = buffer;
+			Width = width;
+			Height = height;
+			Depth = depth;
+            PivotPoint = pivotPoint;
         }
 
 		public Voxel_t[] GetData() {
             // cache
-            if(voxels == null) {
-			    voxels = new Voxel_t[Buffer.count];
-			    Buffer.GetData(voxels);
-            }
-			return voxels;
+            if (_voxels != null) return _voxels;
+
+            _voxels = new Voxel_t[Buffer.count];
+            Buffer.GetData(_voxels);
+            return _voxels;
 		}
 
 		public void Dispose() {
-			buffer.Release();
+			Buffer.Release();
 		}
-
-	}
+    }
 
 }
 

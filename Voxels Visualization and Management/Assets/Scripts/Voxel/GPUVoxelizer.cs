@@ -26,12 +26,12 @@ namespace VoxelSystem {
             return (int)Mathf.Pow(2, k);
         }
 
-		public static GPUVoxelData Voxelize(ComputeShader voxelizer, Mesh mesh, float unit, bool volume = true, bool pow2 = false) {
+		public static GPUVoxelData Voxelize(ComputeShader voxelizer, Mesh mesh, float unit, VoxelizationType type) {
 			mesh.RecalculateBounds();
-            return Voxelize(voxelizer, mesh, mesh.bounds, unit, volume, pow2);
+            return Voxelize(voxelizer, mesh, mesh.bounds, unit, type);
 		}
 
-        public static GPUVoxelData Voxelize(ComputeShader voxelizer, Mesh mesh, Bounds bounds, float unit, bool volume = true, bool pow2 = false)
+        public static GPUVoxelData Voxelize(ComputeShader voxelizer, Mesh mesh, Bounds bounds, float unit, VoxelizationType type)
         {
 			var vertices = mesh.vertices;
 			var vertBuffer = new ComputeBuffer(vertices.Length, Marshal.SizeOf(typeof(Vector3)));
@@ -99,7 +99,7 @@ namespace VoxelSystem {
 			voxelizer.SetBuffer(surfaceBackKer.Index, kVoxelBufferKey, voxelBuffer);
 			voxelizer.Dispatch(surfaceBackKer.Index, indexes / (int)surfaceBackKer.ThreadX + 1, (int)surfaceBackKer.ThreadY, (int)surfaceBackKer.ThreadZ);
 
-            if(volume)
+            if(type == VoxelizationType.volume)
             {
 			    var volumeKer = new Kernel(voxelizer, kVolumeKernelKey);
                 voxelizer.SetBuffer(volumeKer.Index, kVoxelBufferKey, voxelBuffer);

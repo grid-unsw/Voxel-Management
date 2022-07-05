@@ -6,49 +6,21 @@ namespace VoxelSystem
 {
     public class MultiValueVoxelModel
     {
-        public List<VoxelObject>[] Voxels
-        {
-            get { return voxels; }
-        }
+        public List<VoxelObject>[] Voxels { get; }
+        public int Width { get; }
+        public int Height { get; }
+        public int Depth { get; }
+        public Vector3 PivotPoint { get; }
+        public float VoxelSize { get; }
 
-        public int Width
+        public MultiValueVoxelModel(List<VoxelObject>[] voxels, int width, int height, int depth, Vector3 pivotPoint, float voxelSize)
         {
-            get { return width; }
-        }
-
-        public int Height
-        {
-            get { return height; }
-        }
-
-        public int Depth
-        {
-            get { return depth; }
-        }
-
-        public Vector3 PivotPoint
-        {
-            get { return pivotPoint; }
-        }
-
-        public float VoxelSize
-        {
-            get { return voxelSize; }
-        }
-
-        List<VoxelObject>[] voxels;
-        int width, height, depth;
-        Vector3 pivotPoint;
-        float voxelSize;
-
-        public MultiValueVoxelModel(List<VoxelObject>[] v, int w, int h, int d, Vector3 pivot, float vSize)
-        {
-            voxels = v;
-            width = w;
-            height = h;
-            depth = d;
-            pivotPoint = pivot;
-            voxelSize = vSize;
+            Voxels = voxels;
+            Width = width;
+            Height = height;
+            Depth = depth;
+            PivotPoint = pivotPoint;
+            VoxelSize = voxelSize;
         }
     }
 }

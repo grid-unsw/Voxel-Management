@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 using VoxelSystem;
@@ -22,7 +23,17 @@ public class VoxelisationManagerEditor : Editor
         if (GUILayout.Button("Build voxels"))
         {
             if (_meshFilters == null || _meshFilters.Length == 0)
+            {
                 _meshFilters = FindObjectsOfType(typeof(MeshFilter)) as MeshFilter[];
+            }
+
+            if (AssetDatabase.LoadAssetAtPath("Assets/Scripts/Shaders/Voxelizer.compute", typeof(ComputeShader)) == null)
+            {
+                throw new FileLoadException("Voxelizer compute shader is not present");
+            }
+
+            _voxelisationManager.Voxelizer = (ComputeShader)AssetDatabase.LoadAssetAtPath("Assets/Scripts/Shaders/Voxelizer.compute", typeof(ComputeShader));
+
 
             if (_voxelisationManager.hasColor)
             {
@@ -43,16 +54,14 @@ public class VoxelisationManagerEditor : Editor
                     _voxelisationManager.VisualiseVfxColorVoxels(_voxelColorModel);
                 }
 
-                if (_voxelisationManager.exportVoxels)
+                if (_voxelisationManager.ExportAsPointCloud)
                 {
                     _voxelisationManager.ExportPts(_voxelColorModel);
                 }
             }
             else
             {
-                var voxelModels = _voxelisationManager.GetVoxelData(_meshFilters);
-
-                foreach (var voxelData in voxelModels)
+                foreach (var voxelData in _voxelisationManager.GetVoxelData(_meshFilters))
                 {
                     if (voxelData == null) continue;
                     
@@ -70,9 +79,14 @@ public class VoxelisationManagerEditor : Editor
                             voxelData.Depth, voxelData.PivotPoint);
                     }
 
-                    if (_voxelisationManager.exportVoxels)
+                    if (_voxelisationManager.ExportAsPointCloud)
                     {
                         _voxelisationManager.ExportPts(voxels, voxelData.Width, voxelData.Height, voxelData.PivotPoint);
+                    }
+
+                    if (_voxelisationManager.ExportAsPointCloud)
+                    {
+                        _voxelisationManager.ExportToPostgres(voxels, voxelData.Width, voxelData.Height, voxelData.PivotPoint);
                     }
 
                     voxelData.Dispose();
