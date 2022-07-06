@@ -7,7 +7,7 @@ using Debug = UnityEngine.Debug;
 [CustomEditor(typeof(VoxelisationManager))]
 public class VoxelisationManagerEditor : Editor
 {
-    VoxelisationManager _voxelisationManager;
+    private VoxelisationManager _voxelisationManager;
     private MeshFilter[] _meshFilters;
     private MultiValueVoxelModel _voxelColorModel;
 
@@ -19,6 +19,8 @@ public class VoxelisationManagerEditor : Editor
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
+
+        DrawInspectorLayout();
 
         if (GUILayout.Button("Build voxels"))
         {
@@ -35,7 +37,7 @@ public class VoxelisationManagerEditor : Editor
             _voxelisationManager.Voxelizer = (ComputeShader)AssetDatabase.LoadAssetAtPath("Assets/Scripts/Shaders/Voxelizer.compute", typeof(ComputeShader));
 
 
-            if (_voxelisationManager.hasColor)
+            if (_voxelisationManager.KeepObjectId)
             {
                 if (_voxelColorModel == null)
                 {
@@ -44,12 +46,12 @@ public class VoxelisationManagerEditor : Editor
                     Debug.Log("Voxels are successfully created!");
                 }
 
-                if (_voxelisationManager.voxelMesh)
+                if (_voxelisationManager.VisualizeMesh)
                 {
                     _voxelisationManager.BuildColorMesh(_voxelColorModel);
                 }
 
-                if (_voxelisationManager.vfxVisualisation)
+                if (_voxelisationManager.VfxVisualisation)
                 {
                     _voxelisationManager.VisualiseVfxColorVoxels(_voxelColorModel);
                 }
@@ -67,13 +69,13 @@ public class VoxelisationManagerEditor : Editor
                     
                     var voxels = voxelData.GetData();
 
-                    if (_voxelisationManager.voxelMesh)
+                    if (_voxelisationManager.VisualizeMesh)
                     {
                         _voxelisationManager.BuildMesh(voxels, voxelData.Width, voxelData.Height,
                             voxelData.Depth);
                     }
 
-                    if (_voxelisationManager.vfxVisualisation)
+                    if (_voxelisationManager.VfxVisualisation)
                     {
                         _voxelisationManager.VisualiseVfxVoxels(voxels, voxelData.Width, voxelData.Height,
                             voxelData.Depth, voxelData.PivotPoint);
@@ -84,7 +86,7 @@ public class VoxelisationManagerEditor : Editor
                         _voxelisationManager.ExportPts(voxels, voxelData.Width, voxelData.Height, voxelData.PivotPoint);
                     }
 
-                    if (_voxelisationManager.ExportAsPointCloud)
+                    if (_voxelisationManager.ExportToDatabase)
                     {
                         _voxelisationManager.ExportToPostgres(voxels, voxelData.Width, voxelData.Height, voxelData.PivotPoint);
                     }
@@ -93,5 +95,79 @@ public class VoxelisationManagerEditor : Editor
                 }
             }
         }
+    }
+
+    private void DrawInspectorLayout()
+    {
+        if (_voxelisationManager.VoxelizationGeomType == VoxelizationGeomType.point)
+        {
+            _voxelisationManager.FilePathImport = EditorGUILayout.TextField("File Path Import", _voxelisationManager.FilePathImport);
+        }
+
+        _voxelisationManager.KeepObjectId = EditorGUILayout.Toggle("Preserve Objects Id", _voxelisationManager.KeepObjectId);
+
+        if (!_voxelisationManager.KeepObjectId)
+        {
+            _voxelisationManager.VoxelColor = EditorGUILayout.ColorField("Voxel Color", _voxelisationManager.VoxelColor);
+        }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Visualization options");
+        _voxelisationManager.VisualizeMesh = EditorGUILayout.Toggle("Mesh", _voxelisationManager.VisualizeMesh);
+        if (_voxelisationManager.VisualizeMesh)
+        {
+            _voxelisationManager.GridSplittingSize = EditorGUILayout.IntField("Grid Splitting Size", _voxelisationManager.GridSplittingSize);
+            if (_voxelisationManager.KeepObjectId)
+            {
+                _voxelisationManager.MaxUsedColors =
+                    EditorGUILayout.IntField("Max Unique Colors", _voxelisationManager.MaxUsedColors);
+            }
+        }
+
+        EditorGUILayout.Space();
+        _voxelisationManager.VfxVisualisation = EditorGUILayout.Toggle("VFX", _voxelisationManager.VfxVisualisation);
+        if (_voxelisationManager.VfxVisualisation)
+        {
+            _voxelisationManager.VfxVisType = (VoxelVisualizationType) EditorGUILayout.EnumPopup("Vfx Vis Type", _voxelisationManager.VfxVisType);
+        }
+
+        EditorGUILayout.Space();
+        _voxelisationManager.SvoVisualization = EditorGUILayout.Toggle("SVO", _voxelisationManager.SvoVisualization);
+        if (_voxelisationManager.SvoVisualization)
+        {
+
+        }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Export options");
+        _voxelisationManager.GeomOffset = EditorGUILayout.Vector3Field("Geom Offset", _voxelisationManager.GeomOffset);
+        EditorGUILayout.Space();
+        _voxelisationManager.ExportAsPointCloud = EditorGUILayout.Toggle("Point Cloud", _voxelisationManager.ExportAsPointCloud);
+        if (_voxelisationManager.ExportAsPointCloud)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("File Type", GUILayout.MaxWidth(57));
+            _voxelisationManager.FileType = (PointCloudExportType)EditorGUILayout.EnumPopup("", _voxelisationManager.FileType, GUILayout.MaxWidth(50));
+            EditorGUILayout.LabelField("Delimiter", GUILayout.MaxWidth(55));
+            _voxelisationManager.Delimiter =
+                (DelimiterType) EditorGUILayout.EnumPopup("", _voxelisationManager.Delimiter, GUILayout.MaxWidth(80));
+            EditorGUILayout.EndHorizontal();
+            _voxelisationManager.FilePathExport = EditorGUILayout.TextField("File Path Export", _voxelisationManager.FilePathExport);
+        }
+
+        EditorGUILayout.Space();
+        _voxelisationManager.ExportToDatabase = EditorGUILayout.Toggle("Database", _voxelisationManager.ExportToDatabase);
+        if (_voxelisationManager.ExportToDatabase)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Table Name", GUILayout.MaxWidth(75));
+            _voxelisationManager.TableName = EditorGUILayout.TextField("", _voxelisationManager.TableName, GUILayout.MaxWidth(100));
+            EditorGUILayout.LabelField("Truncate", GUILayout.MaxWidth(60));
+            _voxelisationManager.Truncate = EditorGUILayout.Toggle("", _voxelisationManager.Truncate);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Storage options");
     }
 }

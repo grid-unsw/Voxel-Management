@@ -17,38 +17,43 @@ namespace VoxelSystem
         [Header("Voxelisation")] 
         [HideInInspector] public ComputeShader Voxelizer;
         [SerializeField] private float _voxelSize = 0.25f;
-        [SerializeField] public VoxelizationType _voxelizationType;
-        [SerializeField] private bool _useUv = false;
-        [SerializeField] public bool hasColor;
-        [SerializeField] private Color _color = Color.white;
+        [SerializeField] public VoxelizationGeomType VoxelizationGeomType = VoxelizationGeomType.surface;
 
-        [Header("Visualisation - Mesh")] 
-        public bool voxelMesh;
-        [SerializeField] private int _gridSplittingSize = 32;
-        [SerializeField] private int _maxColors = 2;
+        [SerializeField] public string FilePathImport { get; set;}
+        //[SerializeField] private bool _useUv = false;
+        [SerializeField] public bool KeepObjectId { get; set; }
+        [SerializeField] public Color VoxelColor { get; set; } = Color.white;
 
-        [Header("Visualisation - Dots")]
-        [SerializeField] private bool _dotsVisualisation;
-        [SerializeField] private GameObject _quadPrefab;
+        //mesh visualization
+        [SerializeField] public bool VisualizeMesh { get; set; }
+        [SerializeField] public int GridSplittingSize { get; set; } = 32;
+        [SerializeField] public int MaxUsedColors { get; set; } = 10;
+
+        //dots visualization
+        [SerializeField] public bool DotsVisualisation { get; set; }
+        private GameObject _quadPrefab;
         private BlobAssetStore _blobAssetStore;
-        [SerializeField] private bool _turnOffModel;
+        private bool _turnOffModel;
         private EntityManager _entityManager;
 
-        [Header("Visualisation - VFX")]
-        public bool vfxVisualisation;
-        [SerializeField] private VoxelVisualizationType _visType = VoxelVisualizationType.quad;
+        //vfx visualization
+        [SerializeField] public bool VfxVisualisation { get; set; }
+        [SerializeField] public VoxelVisualizationType VfxVisType { get; set; } = VoxelVisualizationType.quad;
 
-        [Header("Export Voxels")] 
-        public bool ExportAsPointCloud;
-        [SerializeField] private PointCloudExportType _fileType = PointCloudExportType.pts;
-        [SerializeField] private string _filePath;
-        [SerializeField] private Delimiter _delimiter = Delimiter.space;
+        //SVO
+        [SerializeField] public bool SvoVisualization { get; set; }
 
-        [Space]
-        public bool ExportToDatabase;
-        [SerializeField] private string _tableName;
-        [SerializeField] private bool _append;
-        [SerializeField] private Vector3 _pivotPoint;
+        //export
+        [SerializeField] public Vector3 GeomOffset { get; set; }
+        //point clouds
+        [SerializeField] public bool ExportAsPointCloud { get; set; }
+        [SerializeField] public PointCloudExportType FileType { get; set; } = PointCloudExportType.pts;
+        [SerializeField] public string FilePathExport { get; set; }
+        [SerializeField] public DelimiterType Delimiter { get; set; } = DelimiterType.space;
+        //database
+        [SerializeField] public bool ExportToDatabase { get; set; }
+        [SerializeField] public string TableName { get; set; } = "";
+        [SerializeField] public bool Truncate { get; set; }
 
         private const int Mesh16BitBufferVertexLimit = 65535;
 
@@ -77,7 +82,7 @@ namespace VoxelSystem
                 {
                     var combinedMeshes = CombineMeshes(voxelModelChunk.MeshFilters.ToArray());
 
-                    yield return GPUVoxelizer.Voxelize(Voxelizer, combinedMeshes, voxelModelChunk.Bounds, _voxelSize, _voxelizationType);
+                    yield return GPUVoxelizer.Voxelize(Voxelizer, combinedMeshes, voxelModelChunk.Bounds, _voxelSize, VoxelizationGeomType);
                 }
 
                 yield return null;
@@ -135,12 +140,12 @@ namespace VoxelSystem
 
             var voxels = new List<VoxelObject>[wModel * hModel * dModel];
 
-            var uniqueColors = VisualizationFunctions.GetUniqueColors(_maxColors);
+            var uniqueColors = VisualizationFunctions.GetUniqueColors(MaxUsedColors);
             var colorNum = 0;
 
             foreach (var meshFilter in meshFilters)
             {
-                var data = GPUVoxelizer.Voxelize(voxelizer, meshFilter.sharedMesh, voxelSize, _voxelizationType);
+                var data = GPUVoxelizer.Voxelize(voxelizer, meshFilter.sharedMesh, voxelSize, VoxelizationGeomType);
                 var voxelsArray = data.GetData();
 
                 var wDiff = Mathf.RoundToInt((data.PivotPoint.x - modelPivotPoint.x) / voxelSize);
@@ -154,7 +159,7 @@ namespace VoxelSystem
                 };
 
                 colorNum++;
-                if (_maxColors == colorNum)
+                if (MaxUsedColors == colorNum)
                 {
                     colorNum = 0;
                 }
@@ -196,7 +201,7 @@ namespace VoxelSystem
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             var parentGameObject = new GameObject("VoxelMesh_" + _voxelSize + "m");
-            var voxelsChunks = VoxelMesh.Build(voxels, width, height, depth, _voxelSize, _gridSplittingSize, _useUv);
+            var voxelsChunks = VoxelMesh.Build(voxels, width, height, depth, _voxelSize, GridSplittingSize);
             var minusHalfVoxel = -_voxelSize / 2;
 
             foreach (var voxelsChunk in voxelsChunks)
@@ -210,7 +215,7 @@ namespace VoxelSystem
 
                 childGameObject.GetComponent<MeshFilter>().sharedMesh = voxelsChunk.Mesh;
                 childGameObject.transform.position = new Vector3(minusHalfVoxel, minusHalfVoxel, minusHalfVoxel);
-                childGameObject.GetComponent<Renderer>().material.color = _color;
+                childGameObject.GetComponent<Renderer>().material.color = VoxelColor;
                 childGameObject.transform.parent = parentGameObject.transform;
             }
             stopwatch.Stop();
@@ -222,7 +227,7 @@ namespace VoxelSystem
         {
 
             var parentGameObject = new GameObject("ColorVoxelMesh_" + _voxelSize + "m");
-            var voxelsChunks = VoxelMesh.BuildWithColor(voxelsData, _voxelSize, _gridSplittingSize, _maxColors, _useUv );
+            var voxelsChunks = VoxelMesh.BuildWithColor(voxelsData, _voxelSize, GridSplittingSize, MaxUsedColors );
             var minusHalfVoxel = -_voxelSize / 2;
 
             foreach (var voxelsChunk in voxelsChunks)
@@ -244,20 +249,20 @@ namespace VoxelSystem
 
         public void ExportToPostgres(Voxel_t[] voxels, int width, int height, Vector3 pivotPoint)
         {
-            DBexport.ExportVoxels(voxels, width, height, pivotPoint, _voxelSize, _tableName, _append);
+            DBexport.ExportVoxels(voxels, width, height, pivotPoint+GeomOffset, _voxelSize, TableName, Truncate);
         }
 
 
         public void VisualiseVfxVoxels(Voxel_t[] voxels, int width, int height, int depth, Vector3 pivotPoint)
         {
-            if (_visType == VoxelVisualizationType.cube)
+            if (VfxVisType == VoxelVisualizationType.cube)
             {
 
                 var voxelLayerPrefab = Resources.Load("Prefabs/VoxelLayer") as GameObject;
 
                 var voxelsLayerGameObject = Instantiate(voxelLayerPrefab, Vector3.zero, new Quaternion());
                 voxelsLayerGameObject.name = "VFX_cubes_" + _voxelSize;
-                voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>().SetVoxelParticles(voxels, width, height, pivotPoint, _voxelSize, _color);
+                voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>().SetVoxelParticles(voxels, width, height, pivotPoint, _voxelSize, VoxelColor);
 
             }
             else
@@ -268,7 +273,7 @@ namespace VoxelSystem
                 var voxelsLayerGameObject = Instantiate(voxelLayerPrefab, Vector3.zero, new Quaternion());
                 voxelsLayerGameObject.name = "VFX_quads_" + _voxelSize;
                 voxelsLayerGameObject.GetComponent<VoxelsRendererDynamic>()
-                    .SetQuadParticles(voxels, width, height, depth, pivotPoint, _voxelSize, _color);
+                    .SetQuadParticles(voxels, width, height, depth, pivotPoint, _voxelSize, VoxelColor);
 
             }
         }
@@ -304,7 +309,7 @@ namespace VoxelSystem
                 }
                 i++;
             }
-            Output.WritePts(points, Color.green, _filePath, _delimiter.GetDescription(), true);
+            Output.WritePts(points, Color.green, FilePathExport, Delimiter.GetDescription(), true);
             
         }
 
@@ -329,7 +334,7 @@ namespace VoxelSystem
                 }
             }
 
-            Output.WritePts(points.ToArray(), _filePath, _delimiter.GetDescription());
+            Output.WritePts(points.ToArray(), FilePathExport, Delimiter.GetDescription());
         }
 
         private void OptimiseMeshes(GPUVoxelData voxelsData)
@@ -563,7 +568,7 @@ namespace VoxelSystem
         
         private void OnDestroy()
         {
-            if (_dotsVisualisation)
+            if (DotsVisualisation)
             {
                 _blobAssetStore.Dispose();
             }
