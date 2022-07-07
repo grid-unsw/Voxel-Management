@@ -4,16 +4,16 @@ using UnityEngine;
 using VoxelSystem;
 using Debug = UnityEngine.Debug;
 
-[CustomEditor(typeof(VoxelisationManager))]
-public class VoxelisationManagerEditor : Editor
+[CustomEditor(typeof(VoxelizationManager))]
+public class VoxelizationManagerEditor : Editor
 {
-    private VoxelisationManager _voxelisationManager;
+    private VoxelizationManager _voxelisationManager;
     private MeshFilter[] _meshFilters;
     private MultiValueVoxelModel _voxelColorModel;
 
     private void OnEnable()
     {
-        _voxelisationManager = (VoxelisationManager) target;
+        _voxelisationManager = (VoxelizationManager) target;
     }
 
     public override void OnInspectorGUI()
@@ -22,7 +22,7 @@ public class VoxelisationManagerEditor : Editor
 
         DrawInspectorLayout();
 
-        if (GUILayout.Button("Build voxels"))
+        if (GUILayout.Button("Run"))
         {
             if (_meshFilters == null || _meshFilters.Length == 0)
             {
@@ -60,6 +60,12 @@ public class VoxelisationManagerEditor : Editor
                 {
                     _voxelisationManager.ExportPts(_voxelColorModel);
                 }
+
+                if (_voxelisationManager.ExportToDatabase)
+                {
+                    _voxelisationManager.ExportToPostgres(_voxelColorModel);
+                }
+
             }
             else
             {
@@ -99,7 +105,7 @@ public class VoxelisationManagerEditor : Editor
 
     private void DrawInspectorLayout()
     {
-        if (_voxelisationManager.VoxelizationGeomType == VoxelizationGeomType.point)
+        if (_voxelisationManager.VoxelizationGeom == VoxelizationGeomType.point)
         {
             _voxelisationManager.FilePathImport = EditorGUILayout.TextField("File Path Import", _voxelisationManager.FilePathImport);
         }
@@ -116,7 +122,7 @@ public class VoxelisationManagerEditor : Editor
         _voxelisationManager.VisualizeMesh = EditorGUILayout.Toggle("Mesh", _voxelisationManager.VisualizeMesh);
         if (_voxelisationManager.VisualizeMesh)
         {
-            _voxelisationManager.GridSplittingSize = EditorGUILayout.IntField("Grid Splitting Size", _voxelisationManager.GridSplittingSize);
+            _voxelisationManager.GridSplittingSize = EditorGUILayout.IntField("Grid Size", _voxelisationManager.GridSplittingSize);
             if (_voxelisationManager.KeepObjectId)
             {
                 _voxelisationManager.MaxUsedColors =
@@ -128,7 +134,7 @@ public class VoxelisationManagerEditor : Editor
         _voxelisationManager.VfxVisualisation = EditorGUILayout.Toggle("VFX", _voxelisationManager.VfxVisualisation);
         if (_voxelisationManager.VfxVisualisation)
         {
-            _voxelisationManager.VfxVisType = (VoxelVisualizationType) EditorGUILayout.EnumPopup("Vfx Vis Type", _voxelisationManager.VfxVisType);
+            _voxelisationManager.VfxVisType = (VoxelVisualizationType) EditorGUILayout.EnumPopup("Geom Type", _voxelisationManager.VfxVisType);
         }
 
         EditorGUILayout.Space();
@@ -162,12 +168,19 @@ public class VoxelisationManagerEditor : Editor
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Table Name", GUILayout.MaxWidth(75));
             _voxelisationManager.TableName = EditorGUILayout.TextField("", _voxelisationManager.TableName, GUILayout.MaxWidth(100));
-            EditorGUILayout.LabelField("Truncate", GUILayout.MaxWidth(60));
+            EditorGUILayout.LabelField("Truncate", GUILayout.MaxWidth(52));
             _voxelisationManager.Truncate = EditorGUILayout.Toggle("", _voxelisationManager.Truncate);
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Geom Type", GUILayout.MaxWidth(75));
+            _voxelisationManager.DBGeomExportType = (DatabaseExportType)EditorGUILayout.EnumPopup("", _voxelisationManager.DBGeomExportType, GUILayout.MaxWidth(100));
             EditorGUILayout.EndHorizontal();
         }
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Storage options");
+        _voxelisationManager.OctreeVisualisation = EditorGUILayout.Toggle("Octree", _voxelisationManager.OctreeVisualisation);
+        _voxelisationManager.DotsVisualisation = EditorGUILayout.Toggle("DOTS Octree", _voxelisationManager.DotsVisualisation);
+
     }
 }

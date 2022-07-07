@@ -1,6 +1,6 @@
 namespace VoxelSystem
 {
-    enum DatabaseExportType
+    public enum DatabaseExportType
     {
         points,
         pointCloud

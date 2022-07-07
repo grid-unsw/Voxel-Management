@@ -18,6 +18,7 @@ public static class DBexport
     public static void ExportVoxels(Voxel_t[] voxels, int width, int height, Vector3 pivotPoint, float voxelSize, string tableName, bool truncate)
     {
         var connectionString = GetConnectionString();
+        tableName = tableName.ToLower();
 
         if (!CheckIfTableExist(tableName, connectionString))
         {
@@ -48,7 +49,7 @@ public static class DBexport
             var p3 = cmd.Parameters.Add("z", NpgsqlTypes.NpgsqlDbType.Real);
             cmd.Prepare();
 
-            for (int i = 0; i < voxels.Length; i++)
+            for (var i = 0; i < voxels.Length; i++)
             {
                 if (voxels[i].fill <= 0) continue;
 
@@ -58,6 +59,59 @@ public static class DBexport
                 p1.Value = voxelCentroid.x;
                 p2.Value = voxelCentroid.z;//switch y and z
                 p3.Value = voxelCentroid.y; 
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static void ExportVoxels(MultiValueVoxelModel voxelModel, int width, int height, Vector3 pivotPoint, float voxelSize, string tableName, bool truncate)
+    {
+        var connectionString = GetConnectionString();
+        tableName = tableName.ToLower();
+
+        if (!CheckIfTableExist(tableName, connectionString))
+        {
+            CreateTable(tableName, connectionString, "(objectId Integer, geom GEOMETRY(POINTZ))");
+        }
+        else
+        {
+            if (truncate)
+            {
+                TruncateTable(tableName, connectionString);
+            }
+        }
+
+        var sql2 = $"INSERT INTO {tableName} (objectid, geom) Values(:objectid, ST_SetSRID(ST_MakePoint(:x, :y, :z), 7856))";
+
+        var halfVoxelSize = voxelSize / 2;
+        var initModelPos = new Vector3(pivotPoint.x + halfVoxelSize, pivotPoint.y + halfVoxelSize, pivotPoint.z + halfVoxelSize);
+
+        using (var conn = new NpgsqlConnection(connectionString))
+        {
+            conn.Open();
+            var cmd = new NpgsqlCommand();
+            cmd.Connection = conn;
+            cmd.CommandText = sql2;
+
+            var p0 = cmd.Parameters.Add("objectid", NpgsqlTypes.NpgsqlDbType.Integer);
+            var p1 = cmd.Parameters.Add("x", NpgsqlTypes.NpgsqlDbType.Real);
+            var p2 = cmd.Parameters.Add("y", NpgsqlTypes.NpgsqlDbType.Real);
+            var p3 = cmd.Parameters.Add("z", NpgsqlTypes.NpgsqlDbType.Real);
+
+            cmd.Prepare();
+
+            for (var i = 0; i < voxelModel.Voxels.Length; i++)
+            {
+                var voxel = voxelModel.Voxels[i];
+                if (voxel == null) continue;
+
+                var index = ArrayFunctions.Index1DTo3D(i, width, height);
+                var voxelCentroid = new Vector3(initModelPos.x + index.X * voxelSize,
+                    initModelPos.y + index.Y * voxelSize, initModelPos.z + index.Z * voxelSize);
+                p0.Value = voxel[0].Id;
+                p1.Value = voxelCentroid.x;
+                p2.Value = voxelCentroid.z;//switch y and z
+                p3.Value = voxelCentroid.y;
                 cmd.ExecuteNonQuery();
             }
         }
@@ -96,14 +150,11 @@ public static class DBexport
         return cmd;
     }
 
-    public static void CreatePCScema()
+    private static void CreatePgPointcloudSchema(string connectionString)
     {
-        var cs = "Host=localhost;Username=postgres;Password=grid21;Database=postgres";
-        var con = new NpgsqlConnection(cs);
-        con.Open();
         const string quote = "\"";
 
-        string sql = "CREATE EXTENSION IF NOT EXISTS POSTGIS;" +
+        var sql = "CREATE EXTENSION IF NOT EXISTS POSTGIS;" +
             "CREATE EXTENSION IF NOT EXISTS pointcloud;" +
             "CREATE EXTENSION IF NOT EXISTS pointcloud_postgis; " +
             "INSERT INTO pointcloud_formats (pcid, srid, schema) VALUES (1, 7856,'<?xml version="
@@ -170,10 +221,8 @@ public static class DBexport
             "  </pc:metadata>" +
             "</pc:PointCloudSchema>');";
 
-        //create vertices table
-        var cmd = new NpgsqlCommand();
-        cmd.Connection = con;
-        cmd.CommandText = sql;
+        var connection = new NpgsqlConnection(connectionString);
+        var cmd = EstablishConnectionWithQuery(connection, sql);
         cmd.ExecuteNonQuery();
     }
 }

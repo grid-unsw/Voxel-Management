@@ -12,12 +12,12 @@ using Debug = UnityEngine.Debug;
 
 namespace VoxelSystem
 {
-    public class VoxelisationManager : MonoBehaviour
+    public class VoxelizationManager : MonoBehaviour
     {
         [Header("Voxelisation")] 
         [HideInInspector] public ComputeShader Voxelizer;
         [SerializeField] private float _voxelSize = 0.25f;
-        [SerializeField] public VoxelizationGeomType VoxelizationGeomType = VoxelizationGeomType.surface;
+        [SerializeField] public VoxelizationGeomType VoxelizationGeom = VoxelizationGeomType.surface;
 
         [SerializeField] public string FilePathImport { get; set;}
         //[SerializeField] private bool _useUv = false;
@@ -28,13 +28,6 @@ namespace VoxelSystem
         [SerializeField] public bool VisualizeMesh { get; set; }
         [SerializeField] public int GridSplittingSize { get; set; } = 32;
         [SerializeField] public int MaxUsedColors { get; set; } = 10;
-
-        //dots visualization
-        [SerializeField] public bool DotsVisualisation { get; set; }
-        private GameObject _quadPrefab;
-        private BlobAssetStore _blobAssetStore;
-        private bool _turnOffModel;
-        private EntityManager _entityManager;
 
         //vfx visualization
         [SerializeField] public bool VfxVisualisation { get; set; }
@@ -54,6 +47,19 @@ namespace VoxelSystem
         [SerializeField] public bool ExportToDatabase { get; set; }
         [SerializeField] public string TableName { get; set; } = "";
         [SerializeField] public bool Truncate { get; set; }
+        [SerializeField] public DatabaseExportType DBGeomExportType { get; set; }
+
+        //storage
+        //cpu
+        [SerializeField] public bool OctreeVisualisation { get; set; }
+
+        //dots visualization octree
+        [SerializeField] public bool DotsVisualisation { get; set; }
+        private GameObject _quadPrefab;
+        private BlobAssetStore _blobAssetStore;
+        private bool _turnOffModel;
+        private EntityManager _entityManager;
+
 
         private const int Mesh16BitBufferVertexLimit = 65535;
 
@@ -82,7 +88,7 @@ namespace VoxelSystem
                 {
                     var combinedMeshes = CombineMeshes(voxelModelChunk.MeshFilters.ToArray());
 
-                    yield return GPUVoxelizer.Voxelize(Voxelizer, combinedMeshes, voxelModelChunk.Bounds, _voxelSize, VoxelizationGeomType);
+                    yield return GPUVoxelizer.Voxelize(Voxelizer, combinedMeshes, voxelModelChunk.Bounds, _voxelSize, VoxelizationGeom);
                 }
 
                 yield return null;
@@ -91,7 +97,7 @@ namespace VoxelSystem
 
         public MultiValueVoxelModel GetMultiValueVoxelData(MeshFilter[] meshFilters)
         {
-            var minMaxBounds = Functions.MinMaxBounds(meshFilters);
+            var minMaxBounds = Functions.GetMeshesBoundsInGlobalSpace(meshFilters);
 
             var extendedBounds = Functions.GetExtendedBounds(minMaxBounds.Item1, minMaxBounds.Item2, _voxelSize);
 
@@ -116,8 +122,10 @@ namespace VoxelSystem
             }
 
             // Create Mesh from combineInstances:
-            Mesh combinedMesh = new Mesh();
-            combinedMesh.name = name;
+            var combinedMesh = new Mesh
+            {
+                name = name
+            };
 
             // If it will be over 65535 then use the 32 bit index buffer:
             if (verticesLength > Mesh16BitBufferVertexLimit)
@@ -129,6 +137,24 @@ namespace VoxelSystem
             combinedMesh.CombineMeshes(combineInstances);
 
             return combinedMesh;
+        }
+        public Mesh TransformMeshLocalToWorld(Mesh mesh)
+        {
+            var newVertices = new Vector3[mesh.vertexCount];
+
+            for (var i = 0; i < mesh.vertexCount; i++)
+            {
+                var vertex = transform.localToWorldMatrix.MultiplyPoint3x4(mesh.vertices[i]);
+                newVertices[i] = vertex;
+            }
+
+            var newMesh = new Mesh()
+            {
+                vertices = newVertices,
+                triangles = mesh.triangles
+            };
+
+            return newMesh;
         }
 
         public MultiValueVoxelModel VoxeliseModel(ComputeShader voxelizer, List<MeshFilter> meshFilters, Index3D modelSizes,
@@ -145,7 +171,7 @@ namespace VoxelSystem
 
             foreach (var meshFilter in meshFilters)
             {
-                var data = GPUVoxelizer.Voxelize(voxelizer, meshFilter.sharedMesh, voxelSize, VoxelizationGeomType);
+                var data = GPUVoxelizer.Voxelize(voxelizer, TransformMeshLocalToWorld(meshFilter.sharedMesh), voxelSize, VoxelizationGeom);
                 var voxelsArray = data.GetData();
 
                 var wDiff = Mathf.RoundToInt((data.PivotPoint.x - modelPivotPoint.x) / voxelSize);
@@ -250,6 +276,11 @@ namespace VoxelSystem
         public void ExportToPostgres(Voxel_t[] voxels, int width, int height, Vector3 pivotPoint)
         {
             DBexport.ExportVoxels(voxels, width, height, pivotPoint+GeomOffset, _voxelSize, TableName, Truncate);
+        }
+
+        public void ExportToPostgres(MultiValueVoxelModel voxelModel)
+        {
+            DBexport.ExportVoxels(voxelModel, voxelModel.Width, voxelModel.Height, voxelModel.PivotPoint + GeomOffset, _voxelSize, TableName, Truncate);
         }
 
 

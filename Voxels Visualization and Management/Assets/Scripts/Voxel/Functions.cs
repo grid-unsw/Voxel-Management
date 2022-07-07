@@ -45,9 +45,9 @@ namespace VoxelSystem
         
         public static MeshFiltersChunk[] GetMeshFiltersChunks(MeshFilter[] meshFilters, float voxelSize) {
 
-            var minMaxBounds = MinMaxBounds(meshFilters);
+            var meshesBounds = GetMeshesBoundsInGlobalSpace(meshFilters);
 
-            var extendedBounds = Functions.GetExtendedBounds(minMaxBounds.Item1, minMaxBounds.Item2, voxelSize);
+            var extendedBounds = Functions.GetExtendedBounds(meshesBounds.Item1, meshesBounds.Item2, voxelSize);
 
             var voxelModelSize = extendedBounds.Item2.X * extendedBounds.Item2.Y * extendedBounds.Item2.Z;
 
@@ -165,16 +165,18 @@ namespace VoxelSystem
             }
         }
 
-        public static (Vector3, Vector3) MinMaxBounds(MeshFilter[] meshFilters)
+        public static (Vector3, Vector3) GetMeshesBoundsInGlobalSpace(MeshFilter[] meshFilters)
         {
             var min = Vector3.positiveInfinity;
             var max = Vector3.negativeInfinity;
 
             foreach (var meshFilter in meshFilters)
             {
+                var bounds = meshFilter.gameObject.GetComponent<Renderer>().bounds;
+
                 // update min and max
-                min = Vector3.Min(min, meshFilter.sharedMesh.bounds.min);
-                max = Vector3.Max(max, meshFilter.sharedMesh.bounds.max);
+                min = Vector3.Min(min, bounds.min);
+                max = Vector3.Max(max, bounds.max);
             }
 
             return (min, max);
