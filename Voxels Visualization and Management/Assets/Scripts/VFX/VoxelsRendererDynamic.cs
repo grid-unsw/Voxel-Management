@@ -21,182 +21,183 @@ public class VoxelsRendererDynamic : MonoBehaviour
     {
         vfx = GetComponent<VisualEffect>();
     }
-    /*
-    /// <summary>
-    /// Visualise voxel model having one color value
-    /// </summary>
-    public void UpdateVoxelVisualisation(bool[,,] voxels, Bounds bounds, float voxelSize, int filledVoxels, Color color)
-    {        
-        positions = new Vector3[filledVoxels];
-        colors = new Color[filledVoxels];
-        int sizeX = voxels.GetLength(0);
-        int sizeY = voxels.GetLength(1);
-        int sizeZ = voxels.GetLength(2);
-
-        Vector3 initModelPos = new Vector3(bounds.min.x + voxelSize / 2, bounds.min.y + voxelSize / 2, bounds.min.z + voxelSize / 2);
-
-        int m = 0;
-        for (int i = 0; i < sizeX; i++)
-            for (int j = 0; j < sizeY; j++)
-                for (int k = 0; k < sizeZ; k++)
-                {
-                    var currentVoxel = voxels[i, j, k];
-                    if (currentVoxel)
-                    {
-                        Vector3 voxelPosition = new Vector3(initModelPos.x + i * voxelSize, initModelPos.y + j * voxelSize, initModelPos.z + k * voxelSize);
-                        positions[m] = voxelPosition;
-                        colors[m] = color;
-                        m++;
-                    }
-                }
-
-        SetParticles(positions, colors);
-    }
-
-    /// <summary>
-    /// Visualise voxel model with many components
-    /// </summary>
-    public void UpdateVoxelVisualisation(int[,,] voxels, Bounds bounds, float voxelSize, int filledVoxels, int[] classes)
+    
+    public void SetQuadParticles(bool[] voxels, int width, int height, int depth, Vector3 pivotPoint, float voxelSize, Color voxelsColor)
     {
-        positions = new Vector3[filledVoxels];
-        colors = new Color[filledVoxels];
-        int sizeX = voxels.GetLength(0);
-        int sizeY = voxels.GetLength(1);
-        int sizeZ = voxels.GetLength(2);
+        var halfVoxelSize = voxelSize / 2;
+        var pivotVoxelPoint = pivotPoint - new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize);
 
-        Vector3 initModelPos = new Vector3(bounds.min.x + voxelSize / 2, bounds.min.y + voxelSize / 2, bounds.min.z + voxelSize / 2);
-        Dictionary<int, Color> uniqueColors = VisFunctions.GetUniqueColors(classes);
+        //pivotPoint += new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize);
+        var positions = new List<Color>();
 
-        int m = 0;
-        for (int i = 0; i < sizeX; i++)
-            for (int j = 0; j < sizeY; j++)
-                for (int k = 0; k < sizeZ; k++)
+        var quadsCount = 0;
+        var m = 0;
+        for (var k = 0; k < depth; k++)
+            for (var j = 0; j < height; j++)
+                for (var i = 0; i < width; i++)
                 {
-                    var currentVoxel = voxels[i, j, k];
-                    if (currentVoxel != 0)
+                    var voxel = voxels[m];
+
+                    if (voxel)
                     {
-                        Vector3 voxelPosition = new Vector3(initModelPos.x + i * voxelSize, initModelPos.y + j * voxelSize, initModelPos.z + k * voxelSize);
-                        positions[m] = voxelPosition;
-                        colors[m] = uniqueColors[currentVoxel];
-                        m++;
-                    }
-                }
+                        var iLeft = i - 1;
+                        var iRight = i + 1;
+                        var jDown = j - 1;
+                        var jUp = j + 1;
+                        var kBack = k - 1;
+                        var kForward = k + 1;
 
-        SetParticles(positions, colors);
-    }
-
-    public void UpdateVoxelVisualisation(int[,,] voxels, Bounds bounds, float voxelSize, int filledVoxels, int[] classes, Dictionary<int, Color> uniColors)
-    {
-        positions = new Vector3[filledVoxels];
-        colors = new Color[filledVoxels];
-        int sizeX = voxels.GetLength(0);
-        int sizeY = voxels.GetLength(1);
-        int sizeZ = voxels.GetLength(2);
-
-        Vector3 initModelPos = new Vector3(bounds.min.x + voxelSize / 2, bounds.min.y + voxelSize / 2, bounds.min.z + voxelSize / 2);
-
-        int m = 0;
-        for (int i = 0; i < sizeX; i++)
-            for (int j = 0; j < sizeY; j++)
-                for (int k = 0; k < sizeZ; k++)
-                {
-                    var currentVoxel = voxels[i, j, k];
-                    if (currentVoxel != 0)
-                    {
-                        Vector3 voxelPosition = new Vector3(initModelPos.x + i * voxelSize, initModelPos.y + j * voxelSize, initModelPos.z + k * voxelSize);
-                        positions[m] = voxelPosition;
-                        colors[m] = uniColors[currentVoxel];
-                        m++;
-                    }
-                }
-
-        SetParticles(positions, colors);
-    }
-
-    public void UpdateVoxelVisualisation(List<Vector3> voxelVectors, float voxelSize, Color uniqueColor)
-    {
-        int count = voxelVectors.Count;
-        positions = new Vector3[count+10000];
-        colors = new Color[count+10000];
-
-        int m = 0;
-        foreach (var voxelVector in voxelVectors)
-        {
-            Vector3 voxelPosition = voxelVector;
-            positions[m] = voxelPosition;
-            colors[m] = uniqueColor;
-            m++;
-        }
-
-        SetParticles(positions, colors);
-    }
-
-    public void UpdateVoxelVisualisation(List<int>[,,] voxels, Bounds bounds, float voxelSize, int filledVoxels, int[] classes)
-    {
-        positions = new Vector3[filledVoxels];
-        colors = new Color[filledVoxels];
-        int sizeX = voxels.GetLength(0);
-        int sizeY = voxels.GetLength(1);
-        int sizeZ = voxels.GetLength(2);
-
-        Vector3 initModelPos = new Vector3(bounds.min.x + voxelSize / 2, bounds.min.y + voxelSize / 2, bounds.min.z + voxelSize / 2);
-        Dictionary<int, Color> uniqueColors = VisFunctions.GetUniqueColors(classes);
-
-        int m = 0;
-        for (int i = 0; i < sizeX; i++)
-            for (int j = 0; j < sizeY; j++)
-                for (int k = 0; k < sizeZ; k++)
-                {
-                    var currentVoxel = voxels[i, j, k];
-                    if (currentVoxel != null)
-                    {
-                        Vector3 voxelPosition = new Vector3(initModelPos.x + i * voxelSize, initModelPos.y + j * voxelSize, initModelPos.z + k * voxelSize);
-                        positions[m] = voxelPosition;
-                        int count = currentVoxel.Count();
-                        if (count == 1)
+                        if (iLeft != -1)
                         {
-                            colors[m] = uniqueColors[currentVoxel[0]];
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(iLeft, j, k, width, height);
+
+                            if (!voxels[voxelIndex])
+                            {
+                                var position = new Color(pivotVoxelPoint.x + i * voxelSize,
+                                    pivotPoint.y + j * voxelSize,
+                                    pivotPoint.z + k * voxelSize, 0);
+                                positions.Add(position);
+                                quadsCount++;
+                            }
                         }
                         else
                         {
-                            colors[m] = Color.white;
+                            var position = new Color(pivotVoxelPoint.x + i * voxelSize,
+                                pivotPoint.y + j * voxelSize,
+                                pivotPoint.z + k * voxelSize, 0);
+                            positions.Add(position);
+                            quadsCount++;
                         }
-                        m++;
+
+                        if (iRight != width)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(iRight, j, k, width, height);
+
+                            if (!voxels[voxelIndex])
+                            {
+                                var position = new Color(pivotVoxelPoint.x + (i + 1) * voxelSize,
+                                    pivotPoint.y + j * voxelSize,
+                                    pivotPoint.z + k * voxelSize, 1);
+                                positions.Add(position);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(pivotVoxelPoint.x + (i + 1) * voxelSize,
+                                pivotPoint.y + j * voxelSize,
+                                pivotPoint.z + k * voxelSize, 1);
+                            positions.Add(position);
+                            quadsCount++;
+                        }
+
+                        if (jDown != -1)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(i, jDown, k, width, height);
+
+                            if (!voxels[voxelIndex])
+                            {
+                                var position = new Color(pivotPoint.x + i * voxelSize,
+                                    pivotVoxelPoint.y + j * voxelSize,
+                                    pivotPoint.z + k * voxelSize, 2);
+                                positions.Add(position);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(pivotPoint.x + i * voxelSize,
+                                pivotVoxelPoint.y + j * voxelSize,
+                                pivotPoint.z + k * voxelSize, 2);
+                            positions.Add(position);
+                            quadsCount++;
+                        }
+
+                        if (jUp != height)
+                        {
+                            var voxelIndex = ArrayFunctions.Index3DTo1D(i, jUp, k, width, height);
+
+                            if (!voxels[voxelIndex])
+                            {
+                                var position = new Color(pivotPoint.x + i * voxelSize,
+                                    pivotVoxelPoint.y + (j + 1) * voxelSize,
+                                    pivotPoint.z + k * voxelSize, 3);
+                                positions.Add(position);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(pivotPoint.x + i * voxelSize,
+                                pivotVoxelPoint.y + (j + 1) * voxelSize,
+                                pivotPoint.z + k * voxelSize, 3);
+                            positions.Add(position);
+                            quadsCount++;
+                        }
+
+                        if (kBack != -1)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(i, j, kBack, width, height);
+
+                            if (!voxels[voxelIndex])
+                            {
+                                var position = new Color(pivotPoint.x + i * voxelSize,
+                                    pivotPoint.y + j * voxelSize,
+                                    pivotVoxelPoint.z + k * voxelSize, 4);
+                                positions.Add(position);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(pivotPoint.x + i * voxelSize,
+                                pivotPoint.y + j * voxelSize,
+                                pivotVoxelPoint.z + k * voxelSize, 4);
+                            positions.Add(position);
+                            quadsCount++;
+                        }
+
+                        if (kForward != depth)
+                        {
+                            var voxelIndex =
+                                ArrayFunctions.Index3DTo1D(i, j, kForward, width, height);
+
+                            if (!voxels[voxelIndex])
+                            {
+                                var position = new Color(pivotPoint.x + i * voxelSize,
+                                    pivotPoint.y + j * voxelSize,
+                                    pivotVoxelPoint.z + (k + 1) * voxelSize, 5);
+                                positions.Add(position);
+                                quadsCount++;
+                            }
+                        }
+                        else
+                        {
+                            var position = new Color(pivotPoint.x + i * voxelSize,
+                                pivotPoint.y + j * voxelSize,
+                                pivotVoxelPoint.z + (k + 1) * voxelSize, 5);
+                            positions.Add(position);
+                            quadsCount++;
+                        }
                     }
+
+                    m++;
                 }
 
-        SetParticles(positions, colors);
+        _voxelSize = voxelSize;
+        _voxelColor = new Vector4(voxelsColor.r, voxelsColor.g, voxelsColor.b, voxelsColor.a);
+        _particleCount = (uint)quadsCount;
+
+        SetParticles(positions);
     }
-
-    public void SetParticles(Vector3[] positions, Color[] colors)
-    {
-        texColor = new Texture2D(positions.Length > (int)resolution ? (int)resolution : positions.Length, Mathf.Clamp(positions.Length / (int)resolution, 1, (int)resolution), TextureFormat.RGBAFloat, false);
-        texPosScale = new Texture2D(positions.Length > (int)resolution ? (int)resolution : positions.Length, Mathf.Clamp(positions.Length / (int)resolution, 1, (int)resolution), TextureFormat.RGBAFloat, false);
-        int texWidth = texColor.width;
-        int texHeight = texColor.height;
-
-        for (int y = 0; y < texHeight; y++)
-        {
-            for (int x = 0; x < texWidth; x++)
-            {
-                int index = x + y * texWidth;
-                texColor.SetPixel(x, y, colors[index]);
-                var data = new Color(positions[index].x, positions[index].y, positions[index].z, voxelSize);
-                texPosScale.SetPixel(x, y, data);
-            }
-        }
-
-        texColor.Apply();
-        texPosScale.Apply();
-        particleCount = (uint)positions.Length;
-        toUpdate = true;
-    }
-    */
-
 
     public void SetParticles(List<Color> positions)
     {
-        _texPosition = new Texture2D(_particleCount > _resolution ? (int)_resolution : (int)_particleCount, Mathf.Clamp((int)_particleCount / (int)_resolution, 1, (int)_resolution), TextureFormat.RGBAFloat, false);
+        _texPosition = new Texture2D(_particleCount > _resolution ? (int)_resolution : (int)_particleCount, Mathf.Clamp((int)_particleCount / (int)_resolution + 1, 1, (int)_resolution), TextureFormat.RGBAFloat, false);
 
         var y = 0;
         var x = 0;
@@ -470,7 +471,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
     {
         hasColor = true;
         var halfVoxelSize = voxelSize / 2;
-        var pivotVoxelPoint = voxelModel.PivotPoint - new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize);
+        var pivotPoint = voxelModel.Bounds.min;
+        var pivotVoxelPoint = pivotPoint - new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize);
         var positions = new List<Color>();
         var colors = new List<Color>();
 
@@ -500,8 +502,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
                             if (voxelLeft == null)
                             {
                                 var position = new Color(pivotVoxelPoint.x + i * voxelSize,
-                                    voxelModel.PivotPoint.y + j * voxelSize,
-                                    voxelModel.PivotPoint.z + k * voxelSize, 0);
+                                    pivotPoint.y + j * voxelSize,
+                                    pivotPoint.z + k * voxelSize, 0);
                                 positions.Add(position);
                                 var color = voxel[0].VoxelColor;
                                 colors.Add(color);
@@ -511,8 +513,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
                         else
                         {
                             var position = new Color(pivotVoxelPoint.x + i * voxelSize,
-                                voxelModel.PivotPoint.y + j * voxelSize,
-                                voxelModel.PivotPoint.z + k * voxelSize, 0);
+                                pivotPoint.y + j * voxelSize,
+                                pivotPoint.z + k * voxelSize, 0);
                             positions.Add(position);
                             var color = voxel[0].VoxelColor;
                             colors.Add(color);
@@ -528,8 +530,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
                             if (voxelRight == null)
                             {
                                 var position = new Color(pivotVoxelPoint.x + (i + 1) * voxelSize,
-                                    voxelModel.PivotPoint.y + j * voxelSize,
-                                    voxelModel.PivotPoint.z + k * voxelSize, 1);
+                                    pivotPoint.y + j * voxelSize,
+                                    pivotPoint.z + k * voxelSize, 1);
                                 positions.Add(position);
                                 var color = voxel[0].VoxelColor;
                                 colors.Add(color);
@@ -539,8 +541,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
                         else
                         {
                             var position = new Color(pivotVoxelPoint.x + (i + 1) * voxelSize,
-                                voxelModel.PivotPoint.y + j * voxelSize,
-                                voxelModel.PivotPoint.z + k * voxelSize, 1);
+                                pivotPoint.y + j * voxelSize,
+                                pivotPoint.z + k * voxelSize, 1);
                             positions.Add(position);
                             var color = voxel[0].VoxelColor;
                             colors.Add(color);
@@ -555,9 +557,9 @@ public class VoxelsRendererDynamic : MonoBehaviour
 
                             if (voxelDown == null)
                             {
-                                var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                var position = new Color(pivotPoint.x + i * voxelSize,
                                     pivotVoxelPoint.y + j * voxelSize,
-                                    voxelModel.PivotPoint.z + k * voxelSize, 2);
+                                    pivotPoint.z + k * voxelSize, 2);
                                 positions.Add(position);
                                 var color = voxel[0].VoxelColor;
                                 colors.Add(color);
@@ -566,9 +568,9 @@ public class VoxelsRendererDynamic : MonoBehaviour
                         }
                         else
                         {
-                            var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                            var position = new Color(pivotPoint.x + i * voxelSize,
                                 pivotVoxelPoint.y + j * voxelSize,
-                                voxelModel.PivotPoint.z + k * voxelSize, 2);
+                                pivotPoint.z + k * voxelSize, 2);
                             positions.Add(position);
                             var color = voxel[0].VoxelColor;
                             colors.Add(color);
@@ -582,9 +584,9 @@ public class VoxelsRendererDynamic : MonoBehaviour
 
                             if (voxelUp == null)
                             {
-                                var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
+                                var position = new Color(pivotPoint.x + i * voxelSize,
                                     pivotVoxelPoint.y + (j + 1) * voxelSize,
-                                    voxelModel.PivotPoint.z + k * voxelSize, 3);
+                                    pivotPoint.z + k * voxelSize, 3);
                                 positions.Add(position);
                                 var color = voxel[0].VoxelColor;
                                 colors.Add(color);
@@ -593,9 +595,9 @@ public class VoxelsRendererDynamic : MonoBehaviour
                         }
                         else
                         {
-                            var position = new Color(voxelModel.PivotPoint.x + i * _voxelSize,
+                            var position = new Color(pivotPoint.x + i * _voxelSize,
                                 pivotVoxelPoint.y + (j + 1) * voxelSize,
-                                voxelModel.PivotPoint.z + k * voxelSize, 3);
+                                pivotPoint.z + k * voxelSize, 3);
                             positions.Add(position);
                             var color = voxel[0].VoxelColor;
                             colors.Add(color);
@@ -610,8 +612,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
 
                             if (voxelBack == null)
                             {
-                                var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
-                                    voxelModel.PivotPoint.y + j * voxelSize,
+                                var position = new Color(pivotPoint.x + i * voxelSize,
+                                    pivotPoint.y + j * voxelSize,
                                     pivotVoxelPoint.z + k * voxelSize, 4);
                                 positions.Add(position);
                                 var color = voxel[0].VoxelColor;
@@ -621,8 +623,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
                         }
                         else
                         {
-                            var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
-                                voxelModel.PivotPoint.y + j * voxelSize,
+                            var position = new Color(pivotPoint.x + i * voxelSize,
+                                pivotPoint.y + j * voxelSize,
                                 pivotVoxelPoint.z + k * voxelSize, 4);
                             positions.Add(position);
                             var color = voxel[0].VoxelColor;
@@ -638,8 +640,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
 
                             if (voxelForward == null)
                             {
-                                var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
-                                    voxelModel.PivotPoint.y + j * voxelSize,
+                                var position = new Color(pivotPoint.x + i * voxelSize,
+                                    pivotPoint.y + j * voxelSize,
                                     pivotVoxelPoint.z + (k + 1) * voxelSize, 5);
                                 positions.Add(position);
                                 var color = voxel[0].VoxelColor;
@@ -649,8 +651,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
                         }
                         else
                         {
-                            var position = new Color(voxelModel.PivotPoint.x + i * voxelSize,
-                                voxelModel.PivotPoint.y + j * voxelSize,
+                            var position = new Color(pivotPoint.x + i * voxelSize,
+                                pivotPoint.y + j * voxelSize,
                                 pivotVoxelPoint.z + (k + 1) * voxelSize, 5);
                             positions.Add(position);
                             var color = voxel[0].VoxelColor;

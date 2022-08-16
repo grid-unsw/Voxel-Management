@@ -9,7 +9,51 @@ namespace VoxelSystem
 {
     public class VoxelMesh {
 
-		public static Mesh Build(GPUVoxelData voxelsData, float unit, bool useUV = false) {
+        public static void BuildMesh(Voxel_t[] voxels, int width, int height, int depth, float voxelSize, int gridSplittingSize, Color voxelColor)
+        {
+            var parentGameObject = new GameObject("VoxelMesh_" + voxelSize + "m");
+            var voxelsChunks = Build(voxels, width, height, depth, voxelSize, gridSplittingSize);
+            var minusHalfVoxel = -voxelSize / 2;
+
+            var material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            material.color = voxelColor;
+
+            foreach (var voxelsChunk in voxelsChunks)
+            {
+                if (voxelsChunk == null) continue;
+
+                var childGameObject = new GameObject("chunk_" + voxelsChunk.XMin + "_" + voxelsChunk.YMin + "_" + voxelsChunk.ZMin,
+                    typeof(MeshFilter), typeof(MeshRenderer));
+
+                childGameObject.GetComponent<MeshFilter>().sharedMesh = voxelsChunk.Mesh;
+                childGameObject.transform.position = new Vector3(minusHalfVoxel, minusHalfVoxel, minusHalfVoxel);
+                childGameObject.GetComponent<Renderer>().material = material;
+                childGameObject.transform.parent = parentGameObject.transform;
+            }
+        }
+
+        public static void BuildColorMesh(MultiValueVoxelModel voxelsData, float voxelSize, int gridSplittingSize, int maxColors)
+        {
+            var parentGameObject = new GameObject("ColorVoxelMesh_" + voxelSize + "m");
+            var voxelsChunks = BuildWithColor(voxelsData, voxelSize, gridSplittingSize, maxColors);
+            var minusHalfVoxel = -voxelSize / 2;
+
+            foreach (var voxelsChunk in voxelsChunks)
+            {
+                if (voxelsChunk == null) continue;
+
+                var childGameObject = new GameObject("chunk_" + voxelsChunk.XMin + "_" + voxelsChunk.YMin + "_" + voxelsChunk.ZMin,
+                    typeof(MeshFilter), typeof(MeshRenderer));
+
+                childGameObject.GetComponent<MeshFilter>().sharedMesh = voxelsChunk.Mesh;
+                childGameObject.transform.position = new Vector3(minusHalfVoxel, minusHalfVoxel, minusHalfVoxel);
+                childGameObject.GetComponent<Renderer>().materials = voxelsChunk.Materials;
+                childGameObject.transform.parent = parentGameObject.transform;
+            }
+
+        }
+
+        public static Mesh Build(GPUVoxelData voxelsData, float unit, bool useUV = false) {
 			var vertices = new List<Vector3>();
 			var uvs = new List<Vector2>();
 			var triangles = new List<int>();
@@ -389,9 +433,9 @@ namespace VoxelSystem
             var chunksDepthCount = Mathf.CeilToInt((float)voxelsData.Depth / gridSplittigSize);
 
             var halfVoxelSize = voxelsData.VoxelSize / 2;
-            var firstVoxelCentroid = new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize) + voxelsData.PivotPoint;
+            var firstVoxelCentroid = new Vector3(halfVoxelSize, halfVoxelSize, halfVoxelSize) + voxelsData.Bounds.min;
 
-            var uniqueMaterials = VisualizationFunctions.GetUniqueMaterials(materialsNumber, "Universal Render Pipeline/Simple Lit");
+            var uniqueMaterials = VisualizationFunctions.GetUniqueMaterials(materialsNumber, "Universal Render Pipeline/Lit");
 
             for (var d = 0; d < chunksDepthCount; d++)
                 for (var h = 0; h < chunksHeightCount; h++)

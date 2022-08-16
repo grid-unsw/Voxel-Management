@@ -53,9 +53,10 @@ namespace VoxelSystem {
             var dunit = unit * 2;
 
             // Extend (min & max) to voxelize boundary surface correctly.
-            var start = bounds.min - Functions.ExtendBound(bounds.min, unit);
-            var end = new Vector3(dunit, dunit, dunit) + bounds.max - Functions.ExtendBound(bounds.max, unit);
+            var start = bounds.min - VoxelFunctions.ExtendBound(bounds.min, unit);
+            var end = new Vector3(dunit, dunit, dunit) + bounds.max - VoxelFunctions.ExtendBound(bounds.max, unit);
             var size = end - start;
+            var voxelsBounds = new Bounds((start + end) / 2, size);
 
             int w, h, d;
             w = Mathf.RoundToInt(size.x / unit);
@@ -111,7 +112,7 @@ namespace VoxelSystem {
 			uvBuffer.Release();
 			triBuffer.Release();
 
-            return new GPUVoxelData(voxelBuffer, w, h, d, start);
+            return new GPUVoxelData(voxelBuffer, w, h, d, voxelsBounds);
         }
 
         public static GPUVoxelData Voxelize(ComputeShader voxelizer, Mesh mesh, (Bounds,Index3D) extendedBounds, float unit, bool volume = true)
@@ -139,6 +140,7 @@ namespace VoxelSystem {
             var start = extendedBounds.Item1.min;
             var end = extendedBounds.Item1.max;
             var size = extendedBounds.Item1.size;
+            var voxelsBounds = new Bounds((start + end) / 2, size);
 
             var w = extendedBounds.Item2.X;
             var h = extendedBounds.Item2.Y;
@@ -193,7 +195,7 @@ namespace VoxelSystem {
             uvBuffer.Release();
             triBuffer.Release();
 
-            return new GPUVoxelData(voxelBuffer, w, h, d, start);
+            return new GPUVoxelData(voxelBuffer, w, h, d, voxelsBounds);
         }
 
         public static RenderTexture BuildTexture3D(ComputeShader voxelizer, GPUVoxelData data, RenderTextureFormat format, FilterMode filterMode)

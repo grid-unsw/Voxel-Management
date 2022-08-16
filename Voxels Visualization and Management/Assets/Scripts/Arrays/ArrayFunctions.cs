@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -16,7 +15,7 @@ public static class ArrayFunctions
         idx -= (z * xMax * yMax);
         var y = idx / xMax;
         var x = idx % xMax;
-        return new Index3D(x,y,z);
+        return new Index3D(x, y, z);
     }
 
     /// <summary>

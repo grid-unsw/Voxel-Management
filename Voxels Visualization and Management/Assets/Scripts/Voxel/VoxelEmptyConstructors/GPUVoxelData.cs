@@ -8,16 +8,16 @@ namespace VoxelSystem {
         public int Width { get; }
 		public int Height { get; }
 		public int Depth { get; }
-		public Vector3 PivotPoint { get; }
+		public Bounds Bounds { get; }
 
         private Voxel_t[] _voxels;
 
-		public GPUVoxelData(ComputeBuffer buffer, int width, int height, int depth, Vector3 pivotPoint) {
+		public GPUVoxelData(ComputeBuffer buffer, int width, int height, int depth, Bounds bounds) {
 			Buffer = buffer;
 			Width = width;
 			Height = height;
 			Depth = depth;
-            PivotPoint = pivotPoint;
+            Bounds = bounds;
         }
 
 		public Voxel_t[] GetData() {
