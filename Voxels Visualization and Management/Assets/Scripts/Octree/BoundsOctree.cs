@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 // A Dynamic, Loose Octree for storing any objects that can be described with AABB bounds
@@ -208,7 +209,7 @@ public class BoundsOctree<T> {
 	/// Visualises collision checks from IsColliding and GetColliding.
 	/// Collision visualisation code is automatically removed from builds so that collision checks aren't slowed down.
 	/// </summary>
-	#if UNITY_EDITOR
+#if UNITY_EDITOR
 	public void DrawCollisionChecks() {
 		int count = 0;
 		foreach (Bounds collisionCheck in lastBoundsCollisionChecks) {

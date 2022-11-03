@@ -61,6 +61,23 @@ namespace MeshManagement
 
             return newMesh;
         }
+
+        public static Bounds GetMeshesBoundsInGlobalSpace(MeshFilter[] meshFilters)
+        {
+            var min = Vector3.positiveInfinity;
+            var max = Vector3.negativeInfinity;
+
+            foreach (var meshFilter in meshFilters)
+            {
+                var bounds = meshFilter.gameObject.GetComponent<Renderer>().bounds;
+
+                // update min and max
+                min = Vector3.Min(min, bounds.min);
+                max = Vector3.Max(max, bounds.max);
+            }
+
+            return new Bounds((min+max)/2,max-min);
+        }
     }
 }
 

@@ -222,8 +222,8 @@ public class VoxelsRendererDynamic : MonoBehaviour
 
     public void SetParticlesWithColor(List<Color> positions, List<Color> colors)
     {
-        _texPosition = new Texture2D(_particleCount > _resolution ? (int)_resolution : (int)_particleCount, Mathf.Clamp((int)_particleCount / (int)_resolution, 1, (int)_resolution), TextureFormat.RGBAFloat, false);
-        _texColor = new Texture2D(_particleCount > _resolution ? (int)_resolution : (int)_particleCount, Mathf.Clamp((int)_particleCount / (int)_resolution, 1, (int)_resolution), TextureFormat.RGBAFloat, false);
+        _texPosition = new Texture2D(_particleCount > _resolution ? (int)_resolution : (int)_particleCount, Mathf.Clamp(((int)_particleCount / (int)_resolution) + 1, 1, (int)_resolution), TextureFormat.RGBAFloat, false);
+        _texColor = new Texture2D(_particleCount > _resolution ? (int)_resolution : (int)_particleCount, Mathf.Clamp(((int)_particleCount / (int)_resolution) + 1, 1, (int)_resolution), TextureFormat.RGBAFloat, false);
 
         var y = 0;
         var x = 0;
@@ -401,7 +401,7 @@ public class VoxelsRendererDynamic : MonoBehaviour
                         }
                         else
                         {
-                            var position = new Color(pivotPoint.x + i * _voxelSize,
+                            var position = new Color(pivotPoint.x + i * voxelSize,
                                 pivotVoxelPoint.y + (j + 1) * voxelSize,
                                 pivotPoint.z + k * voxelSize, 3);
                             positions.Add(position);
@@ -595,7 +595,7 @@ public class VoxelsRendererDynamic : MonoBehaviour
                         }
                         else
                         {
-                            var position = new Color(pivotPoint.x + i * _voxelSize,
+                            var position = new Color(pivotPoint.x + i * voxelSize,
                                 pivotVoxelPoint.y + (j + 1) * voxelSize,
                                 pivotPoint.z + k * voxelSize, 3);
                             positions.Add(position);

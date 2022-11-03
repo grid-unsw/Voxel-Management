@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using MeshManagement;
 using UnityEngine;
 using VoxelSystem;
 
@@ -9,10 +10,7 @@ public class SceneObjectsOctree
     public Bounds SceneBounds { get; }
     public SceneObjectsOctree(MeshFilter[] meshFilters)
     {
-        var meshesBounds = GetMeshesBoundsInGlobalSpace(meshFilters);
-
-        SceneBounds = new Bounds((meshesBounds.Item1 + meshesBounds.Item2) / 2,
-            meshesBounds.Item2 - meshesBounds.Item1);
+        SceneBounds = MeshFunctions.GetMeshesBoundsInGlobalSpace(meshFilters);
 
         var largestBoundsSide = Mathf.Max(SceneBounds.size.x,
             Mathf.Max(SceneBounds.size.y, SceneBounds.size.z));
@@ -29,60 +27,61 @@ public class SceneObjectsOctree
     
     public IEnumerable<MeshFiltersChunk> GetMeshFilterChunks(float voxelSize, Bounds bounds)
     {
-        var extendedBounds = VoxelFunctions.GetExtendedBounds(bounds.min, bounds.max, voxelSize);
-        var chunkMaxSize = (int)Mathf.Pow(2, 8);
-        var xMax = Mathf.CeilToInt((float)extendedBounds.Item2.X / chunkMaxSize);
-        var yMax = Mathf.CeilToInt((float)extendedBounds.Item2.Y / chunkMaxSize);
-        var zMax = Mathf.CeilToInt((float)extendedBounds.Item2.Z / chunkMaxSize);
-        
-        var chunkLength = chunkMaxSize * voxelSize;
-        var chunkHalfLength = chunkLength / 2;
-        var chunkMinPointX = 0f;
-        var chunkMinPointY = 0f;
-        var chunkMinPointZ = 0f;
-        var chunkBoundsSize = new Vector3(chunkLength, chunkLength, chunkLength);
+        var extendedBounds = VoxelFunctions.GetExtendedBounds(bounds, voxelSize);
 
-        //initialize chunks
-        for (var x = 0; x < xMax; x++)
+        //check if the size is larger than 256x256x256
+        if (extendedBounds.Item2.X * extendedBounds.Item2.Y * extendedBounds.Item2.Z > Constants.MaxBlockSize)
         {
-            chunkMinPointX = extendedBounds.Item1.min.x + x * chunkLength;
-            for (var y = 0; y < yMax; y++)
+            var xMax = Mathf.CeilToInt((float) extendedBounds.Item2.X / Constants.ChunkSize);
+            var yMax = Mathf.CeilToInt((float) extendedBounds.Item2.Y / Constants.ChunkSize);
+            var zMax = Mathf.CeilToInt((float) extendedBounds.Item2.Z / Constants.ChunkSize);
+
+            var chunkLength = Constants.ChunkSize * voxelSize;
+            var chunkHalfLength = chunkLength / 2;
+            var chunkMinPointX = 0f;
+            var chunkMinPointY = 0f;
+            var chunkMinPointZ = 0f;
+            var chunkBoundsSize = new Vector3(chunkLength, chunkLength, chunkLength);
+
+            //initialize chunks
+            for (var x = 0; x < xMax; x++)
             {
-                chunkMinPointY = extendedBounds.Item1.min.y + y * chunkLength;
-                for (var z = 0; z < zMax; z++)
+                chunkMinPointX = extendedBounds.Item1.min.x + x * chunkLength;
+                for (var y = 0; y < yMax; y++)
                 {
-                    chunkMinPointZ = extendedBounds.Item1.min.z + z * chunkLength;
-                    var chunkCentre = new Vector3(chunkMinPointX + chunkHalfLength,
-                        chunkMinPointY + chunkHalfLength, chunkMinPointZ + chunkHalfLength);
-                    var chunkBounds = new Bounds(chunkCentre, chunkBoundsSize);
-
-                    var collidingWith = new List<MeshFilter>();
-                    _sceneObjectsBoundsOctree.GetColliding(collidingWith, chunkBounds);
-
-                    if (collidingWith.Any())
+                    chunkMinPointY = extendedBounds.Item1.min.y + y * chunkLength;
+                    for (var z = 0; z < zMax; z++)
                     {
-                        yield return new MeshFiltersChunk(collidingWith.ToArray(), chunkBounds);
+                        chunkMinPointZ = extendedBounds.Item1.min.z + z * chunkLength;
+                        var chunkCentre = new Vector3(chunkMinPointX + chunkHalfLength,
+                            chunkMinPointY + chunkHalfLength, chunkMinPointZ + chunkHalfLength);
+                        var chunkBounds = new Bounds(chunkCentre, chunkBoundsSize);
+
+                        var collidingWith = new List<MeshFilter>();
+                        _sceneObjectsBoundsOctree.GetColliding(collidingWith, chunkBounds);
+
+                        if (collidingWith.Any())
+                        {
+                            var meshFilters = collidingWith.ToArray();
+                            var smallestBounds = VoxelFunctions.ShirnkBoundsToFitInsideChunk(MeshFunctions.GetMeshesBoundsInGlobalSpace(meshFilters),
+                                    chunkBounds);
+                            yield return new MeshFiltersChunk(meshFilters, smallestBounds);
+                        }
                     }
                 }
             }
         }
-        
-    }
-
-    public static (Vector3, Vector3) GetMeshesBoundsInGlobalSpace(MeshFilter[] meshFilters)
-    {
-        var min = Vector3.positiveInfinity;
-        var max = Vector3.negativeInfinity;
-
-        foreach (var meshFilter in meshFilters)
+        else
         {
-            var bounds = meshFilter.gameObject.GetComponent<Renderer>().bounds;
-
-            // update min and max
-            min = Vector3.Min(min, bounds.min);
-            max = Vector3.Max(max, bounds.max);
+            var collidingWith = new List<MeshFilter>();
+            _sceneObjectsBoundsOctree.GetColliding(collidingWith, bounds);
+            if (collidingWith.Any())
+            {
+                var meshFilters = collidingWith.ToArray();
+                var smallestBounds = VoxelFunctions.ShirnkBoundsToFitInsideChunk(MeshFunctions.GetMeshesBoundsInGlobalSpace(meshFilters),
+                    bounds);
+                yield return new MeshFiltersChunk(meshFilters, smallestBounds);
+            }
         }
-
-        return (min, max);
     }
 }

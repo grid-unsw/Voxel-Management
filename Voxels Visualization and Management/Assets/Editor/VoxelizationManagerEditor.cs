@@ -39,6 +39,12 @@ public class VoxelizationManagerEditor : Editor
 
             var sceneObjectsOctree = new SceneObjectsOctree(_meshFilters);
 
+            var svo = new SVOObject();
+            if (_vManager.SvoVisualization)
+            {
+                svo = new SVOObject(sceneObjectsOctree.SceneBounds, _vManager.VoxelSize, _vManager.VoxelColor);
+            }
+
             if (_vManager.KeepObjectId)
             {
                 if (_voxelColorModel == null)
@@ -69,7 +75,8 @@ public class VoxelizationManagerEditor : Editor
 
                 if (_vManager.SvoVisualization)
                 {
-                    SvoFunctions.VisualizeColorVoxelModelWithSVO(_voxelColorModel.Voxels, _voxelColorModel.Width, _voxelColorModel.Height, _voxelColorModel.Bounds, _vManager.VoxelSize);
+                    SvoFunctions.AddColorVoxelModelToSvo(svo,_voxelColorModel.Voxels, _voxelColorModel.Width, _voxelColorModel.Height, _voxelColorModel.Bounds.min, _vManager.VoxelSize);
+                    SvoFunctions.VisualizeSvo(svo, sceneObjectsOctree.SceneBounds, _vManager.VoxelSize);
                 }
 
                 if (_vManager.ExportAsPointCloud)
@@ -85,10 +92,11 @@ public class VoxelizationManagerEditor : Editor
             }
             else
             {
-                foreach (var voxelData in VoxelFunctions.GetVoxelData(sceneObjectsOctree, _vManager.Voxelizer, _vManager.VoxelSize, _vManager.VoxelizationGeom))
+                foreach (var voxelData in VoxelFunctions.GetVoxelData(sceneObjectsOctree, _vManager.Voxelizer,
+                    _vManager.VoxelSize, _vManager.VoxelizationGeom))
                 {
                     if (voxelData == null) continue;
-                    
+
                     var voxels = voxelData.GetData();
 
                     if (_vManager.VisualizeMesh)
@@ -100,25 +108,35 @@ public class VoxelizationManagerEditor : Editor
                     if (_vManager.VfxVisualisation)
                     {
                         VfxFunctions.VisualizeVoxels_t(voxels, voxelData.Width, voxelData.Height,
-                            voxelData.Depth, voxelData.Bounds.min, _vManager.VoxelSize, _vManager.VoxelColor, _vManager.VfxVisType);
+                            voxelData.Depth, voxelData.Bounds.min, _vManager.VoxelSize, _vManager.VoxelColor,
+                            _vManager.VfxVisType);
                     }
 
                     if (_vManager.SvoVisualization)
                     {
-                        SvoFunctions.VisualizeBinaryVoxelModelWithSVO(VoxelFunctions.GetBinaryArray(voxels),voxelData.Width, voxelData.Height, voxelData.Bounds, _vManager.VoxelSize, _vManager.VoxelColor);
+                        SvoFunctions.AddBinaryVoxelModelToSvo(svo, VoxelFunctions.GetBinaryArray(voxels),
+                            voxelData.Width, voxelData.Height, voxelData.Bounds.min, _vManager.VoxelSize);
                     }
 
                     if (_vManager.ExportAsPointCloud)
                     {
-                        Output.ExportPts(voxels, voxelData.Width, voxelData.Height, voxelData.Bounds.min, _vManager.VoxelSize, _vManager.FilePathExport, _vManager.Delimiter.GetDescription());
+                        Output.ExportPts(voxels, voxelData.Width, voxelData.Height, voxelData.Bounds.min,
+                            _vManager.VoxelSize, _vManager.FilePathExport, _vManager.Delimiter.GetDescription());
                     }
 
                     if (_vManager.ExportToDatabase)
                     {
-                        DBexport.ExportVoxels(voxels, voxelData.Width, voxelData.Height, voxelData.Bounds.min+_vManager.GeomOffset, _vManager.VoxelSize, _vManager.TableName, _vManager.Truncate);
+                        DBexport.ExportVoxels(voxels, voxelData.Width, voxelData.Height,
+                            voxelData.Bounds.min + _vManager.GeomOffset, _vManager.VoxelSize, _vManager.TableName,
+                            _vManager.Truncate);
                     }
 
                     voxelData.Dispose();
+                }
+
+                if (_vManager.SvoVisualization)
+                {
+                    SvoFunctions.VisualizeSvo(svo, sceneObjectsOctree.SceneBounds, _vManager.VoxelSize);
                 }
             }
         }
